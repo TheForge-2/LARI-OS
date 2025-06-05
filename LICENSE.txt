@@ -1,0 +1,24 @@
+Copyright © 2024-2025 TheForge-2
+
+All rights reserved.
+
+This software (LARI OS) is provided for personal, non-commercial, educational and experimental use only.
+These terms derive, but not exclusively, from the necessity of utilising and publicizing this software in school environments.
+
+
+You are permitted to:
+
+- Download, view, and run the software on your own system;
+- Use it for personal learning, testing, or exploration purposes.
+
+
+The following are prohibited:
+
+- Commercial use of the software or any part of its code;
+- Redistribution of the software, in original or modified form;
+- Modification, adaptation, or creation of derivative works.
+
+
+No warranty is provided. The software is offered "as is" without warranty of any kind, express or implied.
+
+By using or accessing this software, you agree to these terms.

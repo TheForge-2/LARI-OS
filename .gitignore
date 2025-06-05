@@ -1,0 +1,5 @@
+bochs/*
+!bochs/bochs_config
+
+temp/
+tests/

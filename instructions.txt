@@ -1,0 +1,185 @@
+[An italian translation of this text is coming soon.]
+
+
+Welcome to LARI OS!
+
+This is the first InDev public release: InDev 0.0.
+
+This is a 16-bit real mode operating system (OS), developed for educational purposes.
+The program is based on a command line interface (CLI), so everything is done via commands.
+
+It consists of a single-sector FAT12 bootloader and a monolithic shell, that acts both as a CLI terminal and a kernel.
+Being a real mode program, this operating system has the following features and restrictions:
+	- It bases its core functionalities on BIOS interrupts, found in the IVT;
+	- Due to 20-bit memory addressing, it fully operates in the lower memory (<1024KiB);
+	- It is natively limited to 16-bit registers and arithmetics (without software-level integration).
+
+
+
+
+After being executed, the bootloader looks for the shell in the FAT12 filesystem image, parsing the root directory for 'shell.bin'.
+Following the FAT chain, all the sectors are loaded in memory and control is transferred to the shell.
+
+The shell then tries to detect how much memory it has available, for managing memory usage.
+If this fails, it will throw a warning: you can decide to continue with limited functionalities or to exit.
+These limitations prevent loading any more files and data in memory.
+
+Then the code enters the main loop, which prompts for a command: type the desired command and press 'Enter'.
+There are currently 4 available commands (as reported by the 'help' command):
+	- 'hello': display the welcome message, which contains basic information;
+	- 'help': print more information and instructions and list the available commands;
+	- 'sysinfo': display some information about the system (currently not fully implemented);
+	- 'poweroff': put the system in a safe state for a physical shutdown (currently has limited functionalities).
+Every other command not listed by 'help' is not valid.
+
+The video mode is text 80*25 4-bit colour (for both background and foreground).
+There are 8 pages, natively provided by the BIOS, which store the output of previous commands.
+Use 'PgUp', 'PgDn' and 'Home' to navigate between the pages.
+
+
+
+
+To run the program on Linux:
+
+	- Go to 'https://www.github.com/TheForge-2/LARI-OS.git', click on 'Code' and then 'Download ZIP';
+	- Go to the downloads folder, right click the '.zip' archive and select 'Extract here' (or similar);
+	- Then move the extracted folder to your desired location;
+	- The operating system will need a virtual machine or an emulator to run; there are two main options:
+
+	- You can use Qemu, a simple hardware emulator for various architectures:
+
+		- Open the terminal and install Qemu (https://www.qemu.org, a simple emulator):
+			- Install the packages for all architectures with 'sudo apt install qemu-system';
+			- Otherwise, do install only the i386 architecture package with 'sudo apt install qemu-system-i386';
+
+		- Navigate to the extracted archive directory and type './run.sh' to run it using Qemu;
+		- If the mouse gets grabbed, press simultaneously 'Ctrl' + 'Alt' + 'G';
+		- To quit, press simultaneously 'Ctrl' + 'Alt' + 'Q', click on 'Machine' and then 'Quit' or just click the 'X';
+
+	- Otherwise you can use VirtualBox, a more feature-rich virtualisation utility:
+
+		- Open the terminal and install VirtualBox (https://www.virtualbox.org) with 'sudo apt install virtualbox';
+		- Search for VirtualBox in the start menu and launch it;
+
+		- Click on 'New' (in the top icons) to start setting up the virtual machine;
+			- Give a name to the VM under 'Name' and leave the 'ISO Image' empty, as this program uses an IMG;
+			- Select 'Other' under 'Type' and 'Other/Unknown' under 'Version', then click 'Next';
+			- Give the VM 4MB of memory (the minumum, it is still limited to 1MiB) under 'Base Memory';
+			- Set the number of processors under 'Processors' to 1, as it is plenty for now, then click 'Next';
+			- Select 'Do Not Add a Virtual Hard Drive' (as the OS operates on the floppy image), then 'Next';
+			- Check that the summary is correct, then click 'Finish' and 'Continue';
+
+		- Select the VM in the main menu and click 'Settings' (in the top icons);
+			- Navigate to 'Storage' and click 'Add Controller' (a green rombus with a plus symbol, at the bottom);
+			- Select the 'I82078 (Floppy)' controller and then click the floppy icon with a plus near the added controller;
+			- Click on 'Add' at the top and navigate to the OS directory, then 'build/copy_floppy.img';
+			- Double-click it and hit 'Choose' at the bottom of the screen, then exit the settings menu by clicking 'OK';
+
+		- Choose 'Start' (in the top icons) or double-click the VM name to start it;
+		- If the mouse gets grabbed (you will get a warning), press the indicated key, usually right 'Ctrl';
+		- To quit, press simultaneously the same key for ungrabbing and "Q", click 'File' and 'Close', or simply the 'X';
+		- Then select 'Power off the machine' and hit 'OK'.
+
+
+To run the program on Windows:
+
+	- Go to 'https://www.github.com/TheForge-2/LARI-OS.git', click on 'Code' and then 'Download ZIP';
+	- Go to the downlaods folder, right click the '.zip' archive and select 'Extract here' (or similar);
+	- The operating system will need to run in a virtual machine or an emulator to run;
+
+	- For Windows, VirtualBox is recommended, as it is harder to navigate in the terminal;
+
+		- Go to 'https://www.virtualbox.org' and navigate to the 'Download' section;
+		- Under 'VirtualBox Platform Packages' select 'Windows hosts' and start the download;
+		- Run the downloaded executable and follow the installation process (a guided installation is coming soon);
+
+		- Follow the Linux guide for VirtualBox from the second point "Search for VirtualBox...".
+
+
+Any changes that happen during execution are applied to a 'copy_floppy.img', a copy of 'main_floppy.img'.
+You can reset the copy of the image in two ways (a better explanation and better handling is coming soon):
+
+	- Run the 'Makefile', effectively rebuilding the whole project from the source;
+	- Follow the instructions to compile the program on Linux (under these) from the fifth point "Open the terminal...";
+	- Every change made to the code will be reflected to both the main and the copy image though;
+	- To revert any changes, redownload the code from GitHub (a better explanation is coming);
+
+	- Otherwise, you cna create a new copy of 'main_floppy,img' by first deleting 'copy_floppy.img';
+	- Then make a copy of 'main_floppy.img' and rename it to 'copy_floppy.img'.
+
+
+
+
+To compile the program on Linux:
+
+	- Go to 'https://www.github.com/TheForge-2/LARI-OS.git', click on 'Code' and then 'Download ZIP';
+
+	- Go to the downloads folder, right click the '.zip' archive and select 'Extract here' (or similar);
+	- Then move the extracted folder to your desired location and enter it;
+	- You can either execute the Makefile or run the commands one by one:
+
+	- Open the terminal and install Make (https://www.gnu.org/software/make) with 'sudo apt install make';
+	- Then navigate to the OS directory and type 'make' to build the whole project by running the 'Makefile';
+
+	- Instead, to run the commands one by one, open the 'Makefile' in the OS directory;
+	- Begin with the 'all' rule and execute at chain what it asks (a better guide is noted to be needed);
+	- When encountering flags, like '$(ASM)' or '$(CC)', substitute them with their correspondant at the beginning.
+
+
+
+
+The following list contains all the project files and folders included in the repository:
+
+	- 'src' directory, contains all the program's source code:
+		- 'bootloader' directory, contains the bootloader's code:
+			- 'boot.asm', bootloader's Assembly code;
+		- 'shell' directory, contains the shell's code:
+			- 'shell.asm', shell's Assembly code;
+
+	- 'build' directory, contains all the program's built binaries:
+		- 'tools' directory, contains the executables for C testing tools;
+			- 'fat', FAT12 image reader C tool executable;
+		- 'bootloader.bin', bootloader's assembled binary;
+		- 'shell.bin', shell's assembled binary;
+		- main_floppy.img, the entire OS image;
+
+	- 'tools' directory, contains all the C tools source code:
+		- 'fat' directory, contains all the FAT C tools source code:
+			- 'fat.c', FAT12 image reader C code;
+
+	- 'extra' directory, contains the extra files (text and images for example):
+		- 'test.txt', text file used for testing purposes and included in the image;
+
+	- 'bochs' directory, contains Bochs configuration files and logs:
+		- 'bochs_config', Bochs configuration file;
+
+	- 'Makefile', used by Make to build the entire project;
+
+	- 'run.sh', Bash script to execute the image in Qemu;
+
+	- 'debug.sh', Bash script to debug the image in Bochs;
+
+	- 'instructions.txt', this file, which contains all the instructions.
+
+
+The following files and folders are not included in the repository (as they are stubs, tests or not relevant):
+
+	- 'bochs' directory, contains Bochs configuration files and logs (included in the repository):
+		- 'bochslog.txt', Bochs log file;
+		- 'bx_enh_dbg.ini', Bochs local preferences file;
+
+	- 'temp' directory, contains files for work-in-progress features;
+
+	- 'tests' directory, contains test code and binaries;
+
+
+
+
+[Instructions to generate an ISO and run the program on real hardware (via optical media and USB drives) are coming soon.
+A guide on how to run a disassembled view of the OS in Bochs is also planned.]
+
+
+
+Hope you liked this project, have fun!
+
+- Alessandro Meles // TheForge-2

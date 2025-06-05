@@ -1,0 +1,2 @@
+You have successfully read a text file!
+This string is coming from that file :)

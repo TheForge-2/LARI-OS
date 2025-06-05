@@ -1,0 +1,19 @@
+This file contains developer's notes on future additions and corrections to the project.
+
+Short-term:
+- add an italian translation for the instructions;
+- add an italian version for the OS output;
+- add instructions for ISO creation and real hardware use;
+- improve the creating and handling of the copy image;
+- revise comments and structure of 'boot.asm';
+- add colour support and manual cursor tracking for 'printc' in the shell.
+
+Mid-term:
+- expand the 'sysinfo' command;
+- expand the 'poweroff' command;
+- add disk and filesystem read and write operations.
+
+Long-term:
+- implement a text file reader;
+- create a shell scripting language;
+- add support for bitmaps.
