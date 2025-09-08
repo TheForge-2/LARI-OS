@@ -194,7 +194,7 @@ int main (int argc, char** argv){
 
 	// Minimum arguments check
 	if (argc < 3){
-		printf("Sintax: %s <disk image> <file name>\n", argv[0]);
+		printf("Usage: %s <disk image> <file name>\n", argv[0]);
 		return -1;
 	}
 

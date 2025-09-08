@@ -18,7 +18,7 @@ prints:
 
 	; Load the byte at SI in AL and break for 0x00.
 	lodsb
-	or al, al
+	test al, al
 	jz .done
 
 	; Print it, then repeat.

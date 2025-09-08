@@ -15,8 +15,7 @@ build/main_floppy.img: bootloader shell
 	mkfs.fat -F 12 -n "LARI OS" -s 1 -f 2 -r 224 -S 512 build/main_floppy.img
 	dd if=build/bootloader.bin of=build/main_floppy.img conv=notrunc
 	mcopy -i build/main_floppy.img build/shell.bin "::shell.bin"
-	mcopy -i build/main_floppy.img extra/test.txt "::test.txt"
-	# Create a copy of the image for running in emulators and virtual machines.
+	mcopy -i build/main_floppy.img data/test.txt "::test.txt"
 	cp -p build/main_floppy.img build/copy_floppy.img
 
 # Assemble the bootloader into a pure binary.

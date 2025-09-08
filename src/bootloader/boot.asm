@@ -141,7 +141,14 @@ SHELL_OFFS equ 0x0000 ; Offset of the shell.
 
 
 
-; ########################################
+
+
+; ================================================================================
+; ================================================================================
+
+
+
+
 
 
 ; NECESSARY HEADERS:
@@ -218,7 +225,7 @@ bpb_large_sector_count: dd 0
 ; END OF BIOS PARAMETER BLOCK.
 
 
-; ####################
+; ================================================================================
 
 
 ; EXTENDED BIOS PARAMETER BLOCK:
@@ -245,7 +252,7 @@ ebr_volume_id: dd 0x27182818
 
 ; Volume label string, padded with spaces.
 ; 0x02B, 11.
-ebr_volume_label: db "Lari-OS mbr"
+ebr_volume_label: db "LARI-OS mbr"
 
 ; System identifier string (i.e. "FAT12", "FAT16"), padded with spaces. Not to trust.
 ; 0x036, 8.
@@ -258,7 +265,12 @@ ebr_system_id: db "FAT12   "
 
 
 
-; ########################################
+
+
+; ================================================================================
+; ================================================================================
+
+
 
 
 
@@ -321,7 +333,8 @@ start:
 
 
 
-; ########################################
+; ========================================
+; ========================================
 
 
 
@@ -387,7 +400,8 @@ lba_data:
 
 
 
-; ########################################
+; ========================================
+; ========================================
 
 
 
@@ -404,7 +418,7 @@ lba_data:
 ;		In that case, free_offs will lose meaning after the load operation is complete.
 ;		The user can still preserve its meaning by keeping track of the segments separatly.
 
-; Set up the registers and call the needed functions to the start the shell loading process.
+; Set up the registers and call the needed functions to start the shell loading process.
 .shell_load:
 
 	; Set up the registers to search the shell.
@@ -536,7 +550,8 @@ lba_data:
 
 
 
-; ########################################
+; ========================================
+; ========================================
 
 
 
@@ -546,10 +561,10 @@ lba_data:
 
 ; PUTS:
 
-; 'puts': print a string contained at a spacific address.
+; Print a string contained at a spacific address.
 
 ; Inputs:
-; SI: memory offset where the string is (actually DS:SI, but DS should be 0).
+; - SI = memory offset where the string is (actually DS:SI, but DS should be 0).
 
 ; Outputs:
 ; All general purpose registers and segment registers are preserved.
@@ -580,7 +595,11 @@ puts:
 ; END OF PUTS.
 
 
-; ####################
+
+
+; ========================================
+
+
 
 
 ; WAIT_KEY_AND_REBOOT:
@@ -598,7 +617,11 @@ wait_key_and_reboot:
 ; END OF WAIT_KEY_AND_REBOOT.
 
 
-; ####################
+
+
+; ========================================
+
+
 
 
 ; LBA AND CHS EXPLANATION:
@@ -629,12 +652,16 @@ wait_key_and_reboot:
 ; END OF LBA AND CHS EXPLANATION.
 
 
-; ####################
+
+
+; ========================================
+
+
 
 
 ; DISK_READ:
 
-; 'disk_read': read sectors from a disk to memory, at the specified address.
+; Read sectors from a disk to memory, at the specified address.
 
 ; At the same time it updates the memory offset of the next free byte.
 ; If the passed adderess is not the same as the address of the next free byte, that free memory region will get lost.
@@ -646,10 +673,10 @@ wait_key_and_reboot:
 ; NOTE!: The function might never return if it encounters a disk error when calling INT 0x10.
 
 ; Inputs:
-; AX: LBA address;
-; ES:BX: memory address where to store the read data;
-; DH: number of sectors to read (maximum of 128);
-; DL: drive number.
+; - AX = LBA address;
+; - ES:BX = memory address where to store the read data;
+; - DH = number of sectors to read (maximum of 128);
+; - DL = drive number.
 
 ; Outputs:
 ; All general purpose registers and segment registers are preserved.
@@ -704,7 +731,11 @@ disk_read:
 ; END OF DISK_READ.
 
 
-; ####################
+
+
+; ========================================
+
+
 
 
 ; DISK_RESET:
@@ -722,10 +753,14 @@ disk_reset:
 	popa ; Pop all registers from the stack.
 	ret ; Return to the .retry section in case the disk did reset.
 
-; END OF DISK RESET.
+; END OF DISK_RESET.
 
 
-; ####################
+
+
+; ========================================
+
+
 
 
 ; FLOPPY_ERROR:
@@ -741,10 +776,14 @@ floppy_error:
 	; Start a reboot sequence.
 	jmp wait_key_and_reboot
 
-; END OF FLOPPY ERROR.
+; END OF FLOPPY_ERROR.
 
 
-; ####################
+
+
+; ========================================
+
+
 
 
 ; LBA_TO_CHS:
@@ -755,10 +794,10 @@ floppy_error:
 ; AX: LBA address.
 
 ; Outputs (already set up for INT 0x13):
-; CX (bits 6-15): Cylinder (bits 6 and 7 are the highest bits, lowest is 7);
-; CX (bits 0-5): Sector;
-; DH: Head;
-; DL: Drive Number.
+; - CX (bits 6-15) = cylinder (bits 6 and 7 are the highest bits, lowest is 7);
+; - CX (bits 0-5) = sector;
+; - DH = head;
+; - DL = drive number.
 
 lba_to_chs:
 
@@ -811,10 +850,21 @@ lba_to_chs:
 
 ; END OF LBA_TO_CHS.
 
+; END OF BOOTLOADER'S FUNCTIONS.
+
+; END OF BOOTLOADER'S CODE.
 
 
 
-; ########################################
+
+
+
+; ================================================================================
+; ================================================================================
+
+
+
+
 
 
 ; TEXT MESSAGES:
@@ -831,7 +881,7 @@ msg_loading_shell: db "Loading SHELL...", ENDL, 0
 
 
 
-; ########################################
+; ================================================================================
 
 
 
@@ -858,7 +908,7 @@ shell_filename: db "SHELL   BIN"
 
 
 
-; ########################################
+; ================================================================================
 
 
 
@@ -879,12 +929,18 @@ dw 0xAA55 ; Reversed since it is in little-endian.
 
 
 
-; ########################################
+
+
+; ================================================================================
+; ================================================================================
+
+
 
 
 
 
 ; BIOS INTERRUPTS REFERENCE TABLE (USED INTs ONLY, INCOMPLETE!):
+
 
 ; INT 0x10, Video BIOS Services.
 
@@ -898,7 +954,11 @@ dw 0xAA55 ; Reversed since it is in little-endian.
 ; - None
 
 
-; ####################
+
+
+; ================================================================================
+
+
 
 
 ; INT 0x13, Diskette BIOS Services.

@@ -73,7 +73,7 @@ printc:
 ; Print the character in teletype mode.
 .print_tty:
 
-	; Print the character in Al.
+	; Print the character in AL.
 	mov ah, 0x0E
 	mov bh, [active_page]
 	xor bl, bl
