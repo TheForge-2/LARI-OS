@@ -1,6 +1,14 @@
+; Copyright © 2024-2025 TheForge-2
+; This file is part of the LARI OS project.
+; Use is restricted to personal, non-commercial, educational and experimental purposes only.
+; See 'LICENSE.txt' in the project root for full terms.
+
+
+
+
 ; STRCMP:
 
-; 'strcmp': compare two NULL-terminated strings.
+; Compare two NULL-terminated strings.
 
 ; Inputs:
 ; - SI = address of the first string;
@@ -26,28 +34,21 @@ strcmp:
 
 	; Compare the character with the one at DI and increment DI, break if not equal.
 	scasb
-	jne .not_equal
+	jne .done ; If it breaks, the ZF is clear.
 
 	; If the characters match and AL is 0x00, the strings both ended.
 	test al, al
-	jz .equal
+	jz .done ; If it breaks, the ZF is set.
 
 	; If equal, and the string is not over, continue with the next character.
 	loop .compare_characters
 
-	; If the loop breaks, all the characters were compared and the strings are equal, so set the zero flag.
+	; If the loop breaks, all the requested characters were compared and found to be equal, so set the zero flag.
 	cmp al, al ; Guarantees that ZF is set.
 
-; If the strings are equal, return with the zero flag set.
-.equal:
+; Whether the strings are equal or not, the zero flag has already been toggled by the previous code.
+.done:
 
-	; Restore the registers and return, the ZF was already set manualy or automatically.
-	popa
-	ret
-
-; If the strings are not equal, return with the zero flag cleared.
-.not_equal:
-
-	; Restore the registers and return, the ZF was already cleared by a JNE.
+	; Restore the registers and return.
 	popa
 	ret

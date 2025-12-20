@@ -1,13 +1,14 @@
 ; Copyright © 2024-2025 TheForge-2
 ; This file is part of the LARI OS project.
 ; Use is restricted to personal, non-commercial, educational and experimental purposes only.
-; See 'LINCENSE.txt' in the project root for full terms.
+; See 'LICENSE.txt' in the project root for full terms.
 
 
 
 
 ; Developer's notes:
 ; - currently nothing.
+
 
 
 
@@ -20,7 +21,7 @@
 
 ; It is structured in a monolithic way, so that all the necessary functions are included in the code.
 ; This shell is executed by the bootloader, which is also expected to pass some values via the stack.
-; See 'instructions.txt' for more information.
+; See 'README.md' for more information.
 
 ; END OF DESCRIPTION.
 
@@ -33,7 +34,7 @@
 org 0x0000 ; The code is loaded at offset 0x0000.
 bits 16 ; Emit 16-bit code.
 
-; Define macros for semplifying some things.
+; Define macros for simplifying some sequences.
 %define ENDL 0x0D, 0x0A ; Endline macro, a carriage return (CR) and a line feed (LF).
 
 ; END OF DIRECTIVES.
@@ -99,7 +100,7 @@ arch_id:
 	mov byte [cpu_type], 0 ; Set the CPU type to 8086/8088.
 	je .arch_unsupported ; If yes, the processor is 8086/8088.
 
-; Indentify the 80286 architecture.
+; Identify the 80286 architecture.
 .80286_id:
 
 	; On 80286 bits 12-15 (IOPL, NT and MD) are all cleared and can't be changed.
@@ -151,7 +152,7 @@ arch_id:
 	; If bit 21 was changed, the processor is 80586+.
 	mov byte [cpu_type], 5 ; Set the CPU type to 80586+ and end identification algorithm.
 
-; End of early architecture indentification.
+; End of early architecture identification.
 .arch_id_done:
 
 	; Clear the 32-bit registers, not to create issues.
@@ -200,7 +201,7 @@ arch_id:
 ; Halt the processor.
 .halt:
 
-	; Disable maskable interupts and halt the processor in a loop.
+	; Disable maskable interrupts and halt the processor in a loop.
 	cli
 	hlt
 	jmp .halt
@@ -916,9 +917,9 @@ shell_main_loop:
 	mov si, msg_enter_command
 	call prints
 
-	; Set up the buffer and the lenght tracker.
+	; Set up the buffer and the length tracker.
 	mov di, cmd_input_buffer
-	mov byte [cmd_input_lenght], 0
+	mov byte [cmd_input_length], 0
 
 ; Loop to read all the characters inserted.
 .read_command:
@@ -948,15 +949,15 @@ shell_main_loop:
 	cmp al, 0x00
 	je .read_command
 
-	; Check the lenght of the command so far, not to overflow the buffer.
-	cmp byte [cmd_input_lenght], 31
+	; Check the length of the command so far, not to overflow the buffer.
+	cmp byte [cmd_input_length], 31
 	jnb .read_command
 
-	; Print the character, store it in the buffer and increment the input lenght.
+	; Print the character, store it in the buffer and increment the input length.
 	call printc
 	cld
 	stosb
-	inc byte [cmd_input_lenght]
+	inc byte [cmd_input_length]
 
 	jmp .read_command
 
@@ -978,7 +979,7 @@ shell_main_loop:
 .backspace_pressed:
 
 	; Ignore it if the buffer is empty.
-	cmp byte [cmd_input_lenght], 0
+	cmp byte [cmd_input_length], 0
 	je .read_command
 
 	; Else, move the cursor back, print a space and move it back again.
@@ -988,9 +989,9 @@ shell_main_loop:
 	mov al, 0x08
 	call printc
 
-	; Decrement the position of the last byte in the buffer and the input lenght.
+	; Decrement the position of the last byte in the buffer and the input length.
 	dec di
-	dec byte [cmd_input_lenght]
+	dec byte [cmd_input_length]
 	jmp .read_command
 
 
@@ -1000,21 +1001,21 @@ shell_main_loop:
 ; Handle enter (0x0D).
 .enter_pressed:
 
+	; Prompt again if the command was empty.
+	cmp byte [cmd_input_length], 0
+	je shell_main_loop
+
 	; Go to a new line.
 	mov si, msg_newline
 	call prints
 
-	; Prompt again if the command was empty.
-	cmp byte [cmd_input_lenght], 0
-	je shell_main_loop
-
 	; If the command wasn't empty, print another newline.
 	call prints
 
-	; Store 0x00 in the buffer, signaling the end of the input, and increment the input lenght.
+	; Store 0x00 in the buffer, signalling the end of the input, and increment the input length.
 	xor al, al
 	stosb
-	inc byte [cmd_input_lenght]
+	inc byte [cmd_input_length]
 
 	; Set up the counter (BX) and the offset (DX).
 	mov bx, 0
@@ -1100,10 +1101,10 @@ shell_main_loop:
 ; Parse the command table to see if the entered command exists.
 .parse_table:
 
-	; Set up the counter (CX), the lenght (BX), the source (SI) and the destination (DI).
+	; Set up the counter (CX), the length (BX), the source (SI) and the destination (DI).
 	mov cx, [cmd_entries_count]
 	xor bh, bh
-	mov bl, [cmd_input_lenght]
+	mov bl, [cmd_input_length]
 	mov si, cmd_input_buffer
 	mov di, cmd_table
 
@@ -1117,7 +1118,7 @@ shell_main_loop:
 	; Increment the table index by 16.
 	add di, 16
 
-	; If not all entries were checked, loop agai.
+	; If not all entries were checked, loop again.
 	loop .compare_entries
 	; Else the command was invalid, proceed.
 
@@ -1369,11 +1370,11 @@ cpu_version_info: dd 0x00000000
 ; Additional information from CPUID leaf 1.
 cpu_additional_info: dd 0x00000000
 
-; Feature bits from CPUID leaf 1 (they remain all zero if CPUID is unsupproted).
+; Feature bits from CPUID leaf 1 (they remain all zero if CPUID is unsupported).
 cpu_feature_bits_edx: dd 0x00000000
 cpu_feature_bits_ecx: dd 0x00000000
 
-; Feature bits from CPUID leaf 0x80000001 (they remain all zero if CPUID is unsupproted).
+; Feature bits from CPUID leaf 0x80000001 (they remain all zero if CPUID is unsupported).
 cpu_feature_bits_ext_edx: dd 0x00000000
 cpu_feature_bits_ext_ecx: dd 0x00000000
 
@@ -1452,6 +1453,7 @@ print_control: db 00 ; Contains a value describing how printing should be restri
 
 ; Strings for messages, warnings, errors and prompts used by this shell.
 ; All strings should be NULL-terminated; ENDL is a macro for 0x0D (CR) and 0x0A (LF).
+
 ; How long are 80 characters for reference: 12345678901234567890123456789012345678901234567890123456789012345678901234567890
 
 
@@ -1624,9 +1626,9 @@ err_limited_mem_function: db ENDL, "You can choose whether continue using the OS
 
 ; A reference table for all possible vendor IDs and their preferred algorithm for core enumeration.
 
-; Entry structure (offset and lenght in decimal):
+; Entry structure (offset and length in decimal):
 ; - NULL-terminated vendor ID, padded with spaces (offs 00, len 13);
-; - preferred core enumeration algorithm:
+; - preferred core enumeration algorithm (offs 13, len 14):
 ;	  - 0: Intel's algorithm, the most used;
 ;	  - 1: AMD's algorithm, less used;
 ;	  - 2: requires custom algorithm or is unknown, not handled specifically.
@@ -1648,7 +1650,7 @@ db "Compaq FX!32", 0, 2 ; Compaq FX!32 emulator, x86 on DEC Alpha.
 
 db "ConnectixCPU", 0, 0 ; Connectix Virtual PC before Microsoft acquisition, x86 on PowerPC.
 
-db "CyrixInstead", 0, 2 ; Cyrix, STMicroelectronics and IMB early x86 clones.
+db "CyrixInstead", 0, 2 ; Cyrix, STMicroelectronics and IBM early x86 clones.
 
 db "E2K MACHINE ", 0, 2 ; MCST Elbrus Russian processors, x86 on VLIW.
 
@@ -1680,7 +1682,7 @@ db "RiseRiseRise", 0, 2 ; Rise Technology x86 clones.
 
 db "  Shanghai  ", 0, 0 ; Zhaoxin modern processors.
 
-db "SiS SiS SiS ", 0, 2 ; Sis few x86 processors.
+db "SiS SiS SiS ", 0, 2 ; SiS few x86 processors.
 
 db "TransmetaCPU", 0, 0 ; Transmeta processors, x86 on VLIW.
 
@@ -1697,34 +1699,6 @@ vendor_table_end:
 
 ; END OF VENDOR ID TABLE.
 
-; END OF REFERENCE TABLES.
-
-
-
-
-
-
-; ================================================================================
-; ================================================================================
-
-
-
-
-
-
-; COMMAND HANDLING:
-
-; Buffers, counters and tables for managing commands and user inputs.
-
-; Entered command buffer, for holding the typed characters (31 bytes and 1 NULL character).
-cmd_input_buffer: times 32 db 0
-
-; Entered command lenght, for comparing and matching the input with the table.
-cmd_input_lenght: db 0
-
-; Number of available commands.
-cmd_entries_count: dw (cmd_table_end - cmd_table) / 16
-
 
 
 
@@ -1738,10 +1712,13 @@ cmd_entries_count: dw (cmd_table_end - cmd_table) / 16
 
 ; Define a table for known and valid commands.
 
-; Entry structure (offset and lenght in decimal):
-; - NULL-terminated name, padded with zeros (offs 00, len 12),
-; - call to the command executor (offs 12, len 3),
+; Entry structure (offset and length in decimal):
+; - NULL-terminated command name, padded with zeros (offs 00, len 12);
+; - call to the command executor (offs 12, len 3);
 ; - return instruction to the main code (offs 15, len 1).
+
+; Total available commands.
+cmd_entries_count: dw (cmd_table_end - cmd_table) / 16
 
 ; Address of the command table.
 cmd_table:
@@ -1783,7 +1760,7 @@ cmd_table_end:
 
 ; END OF COMMAND TABLE.
 
-; END OF COMMAND HANDLING.
+; END OF REFERENCE TABLES.
 
 
 
@@ -1798,9 +1775,33 @@ cmd_table_end:
 
 
 
-; COMMAND EXECUTERS:
+; COMMAND HANDLING:
 
-; This command executers, which get called from the command table, handle the command on their own.
+; Buffers, counters and values for managing commands and user inputs.
+; The command table is found amongst the other reference tables.
+
+; Entered command buffer, for holding the typed characters (31 bytes and 1 NULL character).
+cmd_input_buffer: times 32 db 0
+
+; Entered command length, for comparing and matching the input with the table.
+cmd_input_length: db 0
+
+
+
+
+
+
+; ================================================================================
+; ================================================================================
+
+
+
+
+
+
+; COMMAND EXECUTORS:
+
+; This command executors, which get called from the command table, handle the command on their own.
 ; They return to the table's entry's return, which gives back control to the main loop.
 
 
@@ -2036,12 +2037,14 @@ exe_poweroff:
 
 	cli
 	hlt
+
+	; For safety, to avoid executing undefined memory.
 	jmp .halt
 	ret
 
 ; END OF POWEROFF COMMAND.
 
-; END OF COMMAND EXECUTERS.
+; END OF COMMAND EXECUTORS.
 
 
 

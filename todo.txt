@@ -1,10 +1,11 @@
 This file contains developer's notes on future additions and corrections to the project.
+Everything could be subject to changes and revisions, according to the developer's choices.
+Bugs and issues, once known, will be fixed as soon as possible, whilst features may be cancelled or delayed.
 
 Short-term:
 - add an italian translation for the instructions;
 - add an italian version for the OS output;
 - add instructions for ISO creation and real hardware use;
-- improve the creating and handling of the copy image;
 - revise comments and structure of 'boot.asm';
 - add colour support and manual cursor tracking for 'printc' in the shell.
 

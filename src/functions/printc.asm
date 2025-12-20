@@ -1,6 +1,14 @@
+; Copyright © 2024-2025 TheForge-2
+; This file is part of the LARI OS project.
+; Use is restricted to personal, non-commercial, educational and experimental purposes only.
+; See 'LICENSE.txt' in the project root for full terms.
+
+
+
+
 ; PRINTC:
 
-; 'printc': print a character in TTY mode on the active page.
+; Print a character in TTY mode on the active page.
 
 ; Inputs:
 ; - AL = ASCII code of the character to print.

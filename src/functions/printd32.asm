@@ -1,6 +1,14 @@
+; Copyright © 2024-2025 TheForge-2
+; This file is part of the LARI OS project.
+; Use is restricted to personal, non-commercial, educational and experimental purposes only.
+; See 'LICENSE.txt' in the project root for full terms.
+
+
+
+
 ; PRINTD32:
 
-; 'printd32': print a 32-bit number into its decimal ASCII representation.
+; Print a 32-bit number into its decimal ASCII representation.
 
 ; Inputs:
 ; - EAX = number to print.

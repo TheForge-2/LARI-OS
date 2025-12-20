@@ -2,7 +2,10 @@
 Copyright © 2024-2025 TheForge-2
 This file is part of the LARI OS project.
 Use is restricted to personal, non-commercial, educational and experimental purposes only.
-See 'LINCENSE.txt' in the project root for full terms.
+See 'LICENSE.txt' in the project root for full terms.
+
+Based on the code shown in Nanobyte's tutorial "Building an OS", episode 3.
+Expanded with comments and partially restructured.
 */
 
 
