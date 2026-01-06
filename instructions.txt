@@ -1,182 +1,759 @@
-[An italian translation of this text is coming soon.]
+Copyright © 2024-2026 Alessandro Meles (TheForge-2)
+This file is part of the LARI OS project.
+Use is restricted to personal, non-commercial, educational and experimental purposes only.
+See 'LICENSE.txt' in the project root for full terms.
 
+
+
+
+[English]
 
 Welcome to LARI OS!
 
-This is the first InDev public release: InDev 0.0.
+In this file you will find instruction and guides on how to download, build and test this operating system.
 
-This is a 16-bit real mode operating system (OS), developed for educational purposes.
-The program is based on a command line interface (CLI), so everything is done via commands.
+Before you proceed though, I recommend reading the "LICENSE.txt" file, found in the root directory of the project.
+You may also want to check the introductory "README.md" file for a general overview of this operating system:
+being written in Markdown, it is advised to open it with a Markdown viewer for the best experience.
 
-It consists of a single-sector FAT12 bootloader and a monolithic shell, that acts both as a CLI terminal and a kernel.
-Being a real mode program, this operating system has the following features and restrictions:
-	- It bases its core functionalities on BIOS interrupts, found in the IVT;
-	- Due to 20-bit memory addressing, it fully operates in the lower memory (<1024KiB);
-	- It is natively limited to 16-bit registers and arithmetics (without software-level integration).
+To do everything you will need access to a stable version of the OS binaries or source code, which is available on GitHub;
+alternatively you can use a physical or digital copy provided by the developer.
 
+Building the program involves assembling and compiling the source code into executable binaries:
+this process is much easier done on Linux than Windows and will therefore be documented only for the former.
+Moreover, all the automated scripts are written in Bash, the default shell for most Linux distributions.
 
+Brief instructions on how to follow on Windows via the Windows Subsystem for Linux though will be presented.
+Mind that (at least with the base configuration) you cannot run GUI applications, as it just virtualizes a CLI-only environment:
+therefore the testing process must be done outside WSL, with programs like VirtualBox (which is native to Windows).
 
+Testing the operating system is instead feasible on almost every platform that supports an emulator or a virtual manager;
+this includes MacOS, which however won't be discussed by this documentation.
+In addition, there will be an extensive guide on running the OS on real hardware, outside any emulation software.
 
-After being executed, the bootloader looks for the shell in the FAT12 filesystem image, parsing the root directory for 'shell.bin'.
-Following the FAT chain, all the sectors are loaded in memory and control is transferred to the shell.
-
-The shell then tries to detect how much memory it has available, for managing memory usage.
-If this fails, it will throw a warning: you can decide to continue with limited functionalities or to exit.
-These limitations prevent loading any more files and data in memory.
-
-Then the code enters the main loop, which prompts for a command: type the desired command and press 'Enter'.
-There are currently 4 available commands (as reported by the 'help' command):
-	- 'hello': display the welcome message, which contains basic information;
-	- 'help': print more information and instructions and list the available commands;
-	- 'sysinfo': display some information about the system (currently not fully implemented);
-	- 'poweroff': put the system in a safe state for a physical shutdown (currently has limited functionalities).
-Every other command not listed by 'help' is not valid.
-
-The video mode is text 80*25 4-bit colour (for both background and foreground).
-There are 8 pages, natively provided by the BIOS, which store the output of previous commands.
-Use 'PgUp', 'PgDn' and 'Home' to navigate between the pages.
+First, you will be presented with instructions to download, setup and execute the program in confined environments;
+following those, there will be more advanced guides on how to build the project, run it on real hardware and more.
+At the end you will find the table of contents, which lists all the files and folders present in the repository.
 
 
 
+
+DOWNLOADING:
+
+To download the program on both Linux and Windows:
+
+	1) Download it from GitHub:
+
+		1.1) Go to "https://www.github.com/TheForge-2/LARI-OS.git", click on 'Code' and then 'Download ZIP';
+		1.2) Go to the downloads folder, right click the ZIP archive and select 'Extract here' (or similar);
+		1.3) Rename the extracted folder as you wish and move it to a user-accessible folder.
+
+	2) Clone it from a physical copy:
+
+		2.1) Insert the physical medium and check that all the files are present (a list is provided in this file);
+		2.2) Copy the main project folder, paste it to a user-accessible location and rename it as you wish.
+
+	3) Download it from a digital copy:
+
+		3.1) Access the file sharing online service or login to your email inbox;
+		3.2) Download the shared folder or the attachment (likely zipped, go back to step 1.2);
+		3.3) Then rename the extracted folder as you wish and move it to a user-accessible folder.
+
+	4) Make it accessible to WSL (Windows-only):
+
+		4.1) Place the OS folder in a subdirectory of the C: drive, so that WSL can access it from the "mnt/c/" directory.
+
+
+SETTING UP FOR BASIC USAGE:
+
+The operating system will need a virtual machine or an emulator to run in; their availability varies based on the platform.
+This guide will cover QEMU and VirtualBox, an emulation and virtualisation utility respectively, both available on Linux and Windows.
+You can use other programs, like Bochs (for more advanced purposes) and VMWare, if you prefer and know how to use them.
+
+The differences between QEMU and VirtualBox, and more generally between emulators and virtual machines (VMs), are the following:
+
+	- Emulators will emulate a full architecture (like x86) and are all based on software resources, therefore slower;
+	- VMs will instead virtualize your hardware, making the guest's performance much more dependent on the host's capabilities.
+
+	- QEMU is a simple hardware emulator for various architectures like x86, ARM, RISC-V and many more (https://www.qemu.org);
+	- VirtualBox is a feature-rich GUI virtual machine manager for the x86 architecture (https://www.virtualbox.org).
+
+	- Having at least QEMU is recommended for quicker testing, but you can have both for more flexibility.
+
+To setup for basic usage in Linux:
+
+	1) Update the package manager:
+
+		1.1) Open the terminal and run "sudo apt update" to update the package manager cache;
+		1.2) Do the same for non-Debian-based distros with the appropriate command.
+
+	2) Enable the required scripts:
+
+		2.1) Navigate to the project's folder and make the running script (for QEMU) executable with "chmod +x run.sh";
+		2.2) Do the same with the image resetting script with "chmod +x reset-image.sh".
+
+	3) Install QEMU (https://www.qemu.org):
+
+		3.1) Install the QEMU i386 packages with "sudo apt install qemu-system-i386", as the other architectures are not needed;
+		3.2) For non-Debain-based distros, follow the instructions at "https://www.qemu.org/download/#linux".
+
+	4) Install VirtualBox (https://www.virtualbox.org, optional):
+
+		4.1) Open the terminal and install VirtualBox with "sudo apt install virtualbox";
+		4.2) For non-Debain-based distros, do the same with the distro's package manager.
+
+	5) Setup VirtualBox:
+
+		5.1) Enable USB access from VirtualBox VMs (optional, Linux-only):
+
+			5.1.1) Run "sudo usermod -a -G vboxusers $USER" to add the current user to the "vboxusers" group (or specify a user);
+			5.1.2) Log off and on again or restart the system for the changes to take place;
+			5.1.3) Th next time you launch VirtualBox you shouldn't see the error message about USB access anymore.
+
+		5.2) Create a new virtual machine:
+
+			5.2.1) Search for VirtualBox in the start menu and launch it;
+			5.2.2) Click on 'New' (in the top icons) to start setting up the virtual machine;
+			5.2.3) Make sure you are in guided mode by clicking 'Guided Mode' at the bottom if it says so;
+			5.2.4) Give a name to the VM under 'Name' and leave the 'ISO Image' empty, as this program uses an IMG;
+			5.2.5) Select 'Other' under 'Type' and 'Other/Unknown' under 'Version', then click 'Next';
+			5.2.6) Give the VM 4MB of memory (the minimum, it is still limited to 1MiB) under 'Base Memory';
+			5.2.7) Set the number of processors under 'Processors' to 1, as it is plenty for now, then click 'Next';
+			5.2.8) Select 'Do Not Add a Virtual Hard Drive' (as the OS operates on the floppy image), then 'Next';
+			5.2.9) Check that the summary is correct, then click 'Finish' and 'Continue'.
+
+		5.2) Then add the OS image to the VM:
+
+			5.3.1) Select the VM in the main menu and click 'Settings' (in the top icons);
+			5.3.2) Make sure you are in expert mode by clicking on 'Expert' at the top (right besides 'Base') if there is the option;
+			5.3.3) Navigate to 'Storage' and click 'Add Controller' (a green rhombus with a plus symbol, at the bottom);
+			5.3.4) Select the 'I82078 (Floppy)' controller and then click the floppy icon with a plus near the added controller;
+			5.3.5) Click on 'Add' at the top and navigate to the project directory, then to "build/copy_floppy.img";
+			5.3.6) Double-click it and hit 'Choose' at the bottom of the screen, then exit the settings menu by clicking 'OK'.
+
+To setup for basic usage in Windows:
+
+	1) Install QEMU (https://www.qemu.org):
+
+		1.1) Go to "https://qemu.weilnetz.de/w64" and click on "qemu-w64-setup-20250819.exe" to download the Windows 64-bit installer;
+		1.2) Run the downloaded executable and follow the installation process (a guided installation is coming soon).
+
+	2) Install VirtualBox (https://www.virtualbox.org, optional):
+
+		2.1) Go to "https://www.virtualbox.org" and navigate to the 'Download' section;
+		2.2) Under 'VirtualBox Platform Packages' select 'Windows hosts' and start the download;
+		2.3) Run the downloaded executable and follow the installation process (a guided installation is coming soon).
+
+	3) Setup VirtualBox:
+
+		3.1) Follow the instructions to setup VirtualBox on Linux from step 5.2.
+
+
+
+
+TESTING THE PROGRAM:
+
+After having set up the environment, you can now test the operating system with your utility of choice:
+again, these instructions will only cover QEMU and VirtualBox for Linux and Windows.
 
 To run the program on Linux:
 
-	- Go to 'https://www.github.com/TheForge-2/LARI-OS.git', click on 'Code' and then 'Download ZIP';
-	- Go to the downloads folder, right click the '.zip' archive and select 'Extract here' (or similar);
-	- Then move the extracted folder to your desired location;
-	- The operating system will need a virtual machine or an emulator to run; there are two main options:
+	1) Run it with QEMU:
 
-	- You can use Qemu, a simple hardware emulator for various architectures:
+		1.1) Open the terminal, navigate to the project's folder, then type "./run.sh" to launch QEMU with the script;
+		1.2) Alternatively, open the script with a text editor and run the command manually;
+		1.3) To test the OS, check the instructions on how to use LARI OS;
+		1.4) If the mouse gets grabbed in the QEMU window, press simultaneously 'Ctrl' + 'Alt' + 'G' to release it;
+		1.5) To quit, press simultaneously 'Ctrl' + 'Alt' + 'Q', click on 'Machine' and then 'Quit' or just click the 'X'.
 
-		- Open the terminal and install Qemu (https://www.qemu.org, a simple emulator):
-			- Install the packages for all architectures with 'sudo apt install qemu-system';
-			- Otherwise, do install only the i386 architecture package with 'sudo apt install qemu-system-i386';
+	2) Run it with VirtualBox:
 
-		- Navigate to the extracted archive directory and type './run.sh' to run it using Qemu;
-		- If the mouse gets grabbed, press simultaneously 'Ctrl' + 'Alt' + 'G';
-		- To quit, press simultaneously 'Ctrl' + 'Alt' + 'Q', click on 'Machine' and then 'Quit' or just click the 'X';
-
-	- Otherwise you can use VirtualBox, a more feature-rich virtualisation utility:
-
-		- Open the terminal and install VirtualBox (https://www.virtualbox.org) with 'sudo apt install virtualbox';
-		- Search for VirtualBox in the start menu and launch it;
-
-		- Click on 'New' (in the top icons) to start setting up the virtual machine;
-			- Give a name to the VM under 'Name' and leave the 'ISO Image' empty, as this program uses an IMG;
-			- Select 'Other' under 'Type' and 'Other/Unknown' under 'Version', then click 'Next';
-			- Give the VM 4MB of memory (the minumum, it is still limited to 1MiB) under 'Base Memory';
-			- Set the number of processors under 'Processors' to 1, as it is plenty for now, then click 'Next';
-			- Select 'Do Not Add a Virtual Hard Drive' (as the OS operates on the floppy image), then 'Next';
-			- Check that the summary is correct, then click 'Finish' and 'Continue';
-
-		- Select the VM in the main menu and click 'Settings' (in the top icons);
-			- Navigate to 'Storage' and click 'Add Controller' (a green rombus with a plus symbol, at the bottom);
-			- Select the 'I82078 (Floppy)' controller and then click the floppy icon with a plus near the added controller;
-			- Click on 'Add' at the top and navigate to the OS directory, then 'build/copy_floppy.img';
-			- Double-click it and hit 'Choose' at the bottom of the screen, then exit the settings menu by clicking 'OK';
-
-		- Choose 'Start' (in the top icons) or double-click the VM name to start it;
-		- If the mouse gets grabbed (you will get a warning), press the indicated key, usually right 'Ctrl';
-		- To quit, press simultaneously the same key for ungrabbing and "Q", click 'File' and 'Close', or simply the 'X';
-		- Then select 'Power off the machine' and hit 'OK'.
-
+		2.1) Launch VirtualBox, choose 'Start' (in the top icons) or double-click the VM name to start it;
+		2.2) To test the OS, check the instructions on how to use LARI OS;
+		2.3) If the mouse gets grabbed (you will get a warning), press the indicated key, usually right 'Ctrl';
+		2.4) To quit, press simultaneously the same key for ungrabbing and 'Q', click 'File' and 'Close', or simply the 'X';
+		2.5) Then select 'Power off the machine' and hit 'OK'.
 
 To run the program on Windows:
 
-	- Go to 'https://www.github.com/TheForge-2/LARI-OS.git', click on 'Code' and then 'Download ZIP';
-	- Go to the downlaods folder, right click the '.zip' archive and select 'Extract here' (or similar);
-	- The operating system will need to run in a virtual machine or an emulator to run;
+	1) Run it with VirtualBox:
 
-	- For Windows, VirtualBox is recommended, as it is harder to navigate in the terminal;
+		1.1) Follow the instructions to run the program in VirtualBox on Linux from step 2.
 
-		- Go to 'https://www.virtualbox.org' and navigate to the 'Download' section;
-		- Under 'VirtualBox Platform Packages' select 'Windows hosts' and start the download;
-		- Run the downloaded executable and follow the installation process (a guided installation is coming soon);
+	2) Run it with QEMU:
 
-		- Follow the Linux guide for VirtualBox from the second point "Search for VirtualBox...".
-
-
-Any changes that happen during execution are applied to a 'copy_floppy.img', a copy of 'main_floppy.img'.
-You can reset the copy of the image in two ways (a better explanation and better handling is coming soon):
-
-	- Run the 'Makefile', effectively rebuilding the whole project from the source;
-	- Follow the instructions to compile the program on Linux (under these) from the fifth point "Open the terminal...";
-	- Every change made to the code will be reflected to both the main and the copy image though;
-	- To revert any changes, redownload the code from GitHub (a better explanation is coming);
-
-	- Otherwise, you cna create a new copy of 'main_floppy,img' by first deleting 'copy_floppy.img';
-	- Then make a copy of 'main_floppy.img' and rename it to 'copy_floppy.img'.
+		2.1) Instructions are coming soon.
 
 
 
 
-To compile the program on Linux:
+RESETTING THE IMAGE:
 
-	- Go to 'https://www.github.com/TheForge-2/LARI-OS.git', click on 'Code' and then 'Download ZIP';
+Any changes that happen during execution are applied to "copy_floppy.img", a copy of "main_floppy.img".
+This allows restoring the image to its original state without recompiling the whole project.
+As long as the original "main_floppy.img" is intact, you can reset the copy image (even without the original source code).
 
-	- Go to the downloads folder, right click the '.zip' archive and select 'Extract here' (or similar);
-	- Then move the extracted folder to your desired location and enter it;
-	- You can either execute the Makefile or run the commands one by one:
+To reset the copy image on Linux:
 
-	- Open the terminal and install Make (https://www.gnu.org/software/make) with 'sudo apt install make';
-	- Then navigate to the OS directory and type 'make' to build the whole project by running the 'Makefile';
+	1) If you have the original image:
 
-	- Instead, to run the commands one by one, open the 'Makefile' in the OS directory;
-	- Begin with the 'all' rule and execute at chain what it asks (a better guide is noted to be needed);
-	- When encountering flags, like '$(ASM)' or '$(CC)', substitute them with their correspondant at the beginning.
+		1.1) Use the dedicated reset script (reset_image.sh):
 
+			1.1.1) Open the terminal, navigate to the project's directory and run "./reset-image.sh" (confirm with "yes").
 
+		1.2) Reset the image manually:
 
+			1.2.1) Open the terminal and navigate to the project's directory;
+			1.2.2) Overwrite changes to the image with "cp build/main_floppy.img build/copy_floppy.img".
 
-The following list contains all the project files and folders included in the repository:
+	2) If you don't have the original image:
 
-	- 'src' directory, contains all the program's source code:
-		- 'bootloader' directory, contains the bootloader's code:
-			- 'boot.asm', bootloader's Assembly code;
-		- 'shell' directory, contains the shell's code:
-			- 'shell.asm', shell's Assembly code;
+		2.1) Get just the copy image (latest version):
 
-	- 'build' directory, contains all the program's built binaries:
-		- 'tools' directory, contains the executables for C testing tools;
-			- 'fat', FAT12 image reader C tool executable;
-		- 'bootloader.bin', bootloader's assembled binary;
-		- 'shell.bin', shell's assembled binary;
-		- main_floppy.img, the entire OS image;
+			2.1.1) Go to "https://www.github.com/TheForge-2/LARI-OS.git" and click on the "build" folder;
+			2.1.2) From there, select "copy_floppy.img" and then the download symbol to the top-right;
+			2.1.3) Copy the downloaded image to the project's "build" folder, replacing the old one.
 
-	- 'tools' directory, contains all the C tools source code:
-		- 'fat' directory, contains all the FAT C tools source code:
-			- 'fat.c', FAT12 image reader C code;
+		2.2) Download the whole project again (latest version):
 
-	- 'extra' directory, contains the extra files (text and images for example):
-		- 'test.txt', text file used for testing purposes and included in the image;
+			2.2.1) Follow the instructions to download the program from step 1.
 
-	- 'bochs' directory, contains Bochs configuration files and logs:
-		- 'bochs_config', Bochs configuration file;
+	3) If you have the original code:
 
-	- 'Makefile', used by Make to build the entire project;
+		3.1) Follow the instructions to build the project on Linux from step 1.
 
-	- 'run.sh', Bash script to execute the image in Qemu;
+To reset the copy image on Windows:
 
-	- 'debug.sh', Bash script to debug the image in Bochs;
+	1) If you have the original image:
 
-	- 'instructions.txt', this file, which contains all the instructions.
+		1.1) Reset the image manually:
 
+			1.1.2) In Explorer, navigate to the project's "build" folder;
+			1.1.3) Delete "copy_floppy.img", copy "main_floppy.img" and paste it, then rename it to "copy_floppy.img".
 
-The following files and folders are not included in the repository (as they are stubs, tests or not relevant):
+		1.2) Use the dedicated script (WSL-only)
 
-	- 'bochs' directory, contains Bochs configuration files and logs (included in the repository):
-		- 'bochslog.txt', Bochs log file;
-		- 'bx_enh_dbg.ini', Bochs local preferences file;
+			1.2.1) If you are working from WSL, follow the instructions to reset the copy image on Linux from step 1.
 
-	- 'temp' directory, contains files for work-in-progress features;
+	2) If you don't have the original image:
 
-	- 'tests' directory, contains test code and binaries;
+		2.1) Follow the instructions to reset the copy image on Linux from step 2.
+
+	3) If you have the original source code:
+
+		3.1) Follow the instructions to build the project on Windows from step 1.
 
 
 
 
-[Instructions to generate an ISO and run the program on real hardware (via optical media and USB drives) are coming soon.
-A guide on how to run a disassembled view of the OS in Bochs is also planned.]
+WARNING!
+
+The guides that follow are for advanced use and require some minimal knowledge:
+even if you are an expert, proceed with caution, as they could cause PERMANENT DATA LOSS.
+
+
+
+
+SETTING UP FOR INTERMEDIATE USAGE (compiling):
+
+To build the operating system from its source code you will need a set of command-line utilities.
+This guide will cover Make, NASM, GCC, dosfstools and mtools, as all the scripts and automated processes rely on them;
+you can though choose to use different programs if you prefer and know how to use them (most scripts won't work though).
+
+Native Windows compiling will not be covered, as most tools used by the Makefile in the build process are Linux-only:
+some of them, although available for Windows, have a more complicated installation procedure due to not being native.
+If you still wish to build the OS from Windows, it is recommended to use the Windows Subsystem for Linux (WSL):
+it is a command-line-only Linux instance that will allow you to install Linux-only tools and work from the Linux environment.
+General instructions on how to set it up will be provided in this guide.
+
+The required utilities are the following:
+
+	- Make, a tool for automating the build process of programs with a complex structure (https://www.gnu.org/software/make);
+	- NASM (Netwide Assembler), a modern and portable x86 assembler (https://www.nasm.us/);
+	- GCC (GNU Compiler Collection), a collection of compilers for various languages (https://gcc.gnu.org);
+	- dosfstools, a set of programs to create, check and label FAT filesystems (https://github.com/dosfstools/dosfstools);
+	- mtools, a collection of utilities to access MS-DOS disks without mounting them (https://www.gnu.org/software/mtools).
+
+To setup for compiling on Linux:
+
+	1) Update the package manager:
+
+		1.1) Open the terminal and run "sudo apt update" to update the package manager cache;
+		1.2) Do the same for non-Debian-based distros with the appropriate command.
+
+	2) Install the above-mentioned utilities:
+
+		2.1) Run "sudo apt install make nasm gcc dosfstools mtools" to install all of them;
+		2.2) For non-Debain-based distros, do the same with the distro's package manager.
+
+To setup for compiling on Windows (using WSL):
+
+	1) Enable the Windows Subsystem for Linux:
+
+		1.1) Use PowerShell or the Command Prompt:
+
+			1.1.1) Search for PowerShell or Command Prompt and select "Run as an administrator";
+			1.1.2) Then run "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux".
+
+		1.2) Use the Control Panel:
+
+			1.2.1) In the start menu, search for "Turn Windows features on or off" and open the dialogue;
+			1.2.2) Look for "Windows Subsystem for Linux" and check the box.
+
+	2) Install WSL:
+
+		2.1) Launch PowerShell as an administrator and run "wsl --install -d Ubuntu" to install a minimal CLI Ubuntu version;
+		2.2) If prompted, restart the computer, then run "wsl" in PowerShell or Command Prompt and let it finish installing;
+		2.3) When it asks so, select a username and a password (which can be different from your Windows's ones).
+
+	3) Install the needed utilities:
+
+		3.1) From inside WSL, follow the instructions on how to set up for compiling on Linux from step 1.
+
+
+
+
+BUILDING THE PROJECT:
+
+If you want to reset the OS image or test changes you made to the code, you will need to rebuild the project.
+As long as your changes haven't altered the structure, you will be able to use the project's "Makefile";
+otherwise you will have to build the whole OS (or part of it) manually.
+This guide will only cover Linux, as the "Makefile" is written for Linux utilities.
+To follow on Windows, work from the Windows Subsystem for Linux (WSL).
+
+To build the project on Linux:
+
+	1) Use the "Makefile" (recommended if possible):
+
+		1.1) Open the terminal, navigate to the project's directory and run "make" to rebuild everything.
+
+	2) Build manually (experts only):
+
+		2.1) Run the "Makefile" manually (if the structure didn't change):
+
+			2.1.1) Run the commands found in the "Makefile" one by one, following its logic and structure;
+			2.1.2) If you encounter flags like "$ASM" or "$CC", substitute them with their definitions.
+
+		2.2) Change the build process (if the structure changed):
+
+			2.2.1) Edit the "Makefile" to include the changes (if possible), then run it with "make";
+			2.2.2) Otherwise execute the required commands manually in the terminal.
+
+To build the project on Windows:
+
+	1) Same as on Linux (WSL-only):
+
+		1.1) Launch PowerShell or Command Prompt and run "wsl" to enter the WSL terminal;
+		1.2) Follow the instructions on how to build the project on Linux from step 1.
+
+
+
+
+SETTING UP FOR REAL HARDWARE TESTING:
+
+Testing the operating system on real hardware requires using a physical device to boot from the image outside any OS:
+the most common medias are USB removable drives and optical disks, such as CDs and DVDs.
+
+You will also need a set of specific programs and tools to create a disk image (IMG or ISO) and flash it to a device.
+This guide will cover both Linux and Windows, each one with their native tools.
+In case you use the provided ISO image ("eltorito_disc.iso"), you don't need to install "genisoimage" and ImgBurn.
+
+The required utilities for Linux are the following:
+
+	- dosfstools, a set of programs to create, check and label FAT filesystems (https://github.com/dosfstools/dosfstools);
+	- util-linux, a package of miscellaneous utilities (https://github.com/util-linux/util-linux);
+	- genisoimage, a tool for creating ISO 9660 filesystem ISO images (https://wiki.debian.org/genisoimage);
+	- wodim, a tool for recording data on CDs and DVDs mostly derived from "cdrecord" (https://linux.die.net/man/1/wodim).
+
+The required programs for Windows are the following:
+
+	- Rufus, a program for flashing ISO images onto USB drives (https://rufus.ie);
+	- ImgBurn, a program for creating ElTorito ISO images from IMG files (https://www.imgburn.com);
+
+To set up for real hardware testing on Linux:
+
+	1) Update the package manager:
+
+		1.1) Open the terminal and run "sudo apt update" to update the package manager cache;
+		1.2) Do the same for non-Debian-based distros with the appropriate command.
+
+	2) Install the Linux utilities to flash USB drives:
+
+		2.1) Run "sudo apt install dosfstools util-linux genisoimage" to install them;
+		2.2) For non-Debain-based distros, do the same with the distro's package manager.
+
+	3) Install the Linux utilities to burn optical disks:
+
+		3.1) Run "sudo apt install genisoimage wodim" to install them;
+		3.2) For non-Debain-based distros, do the same with the distro's package manager.
+
+	4) Make the required scripts executable:
+
+		4.1) Navigate to the project's folder and run "chmod +x gen-iso.sh burn-usb.sh restore-usb.sh burn-dvd.sh blank-dvd.sh".
+
+To set up for real hardware testing on Windows:
+
+	1) Install Rufus (https://rufus.ie):
+
+		1.1) Go to "https://rufus.ie", scroll down and click on "rufus-4.9.exe" to download the standard version;
+		1.2) Navigate to the downloads folder and move the executable where you wish.
+
+	2) Install ImgBurn (https://www.imgburn.com):
+
+		2.1) Go to "https://www.imgburn.com", select 'Download' at the top left then 'Mirror 7 - Provided by ImgBurn';
+		2.2) Execute the installer, accept the license by selecting 'I accept the terms of the License Agreement', then 'Next >';
+		2.3) Leave the default configuration by clicking 'Next >', then again, then again to begin the installation;
+		2.4) Once finished, click 'Finish' to close the installer.
+
+
+
+
+TESTING ON REAL HARDWARE (experts only):
+
+You can test the operating system outside emulated environments by moving to real hardware:
+first you will need to flash the OS image to a physical device, then boot from it by selecting it in the BIOS.
+
+Based on the BIOS's era and design, certain devices might not be supported in this process:
+it is therefore always recommended to check for compatibility before attempting to use them.
+
+The instructions for using USB drives will also work for most non-optical devices, though they won't cover them in detail:
+before proceeding with any overwriting operation, please be sure the device you've chosen is correct!
+
+The following guide will not cover how to flash an ElTorito ISO image with floppy-emulation to a USB drive, but only the IMG:
+it would be equivalent to DDing the raw IMG directly, therefore constituting no practical difference.
+The only usecase in which it would make a difference is with tools like Ventoy, which preserves the whole ISO in its main partition.
+
+To use a USB removable drive (or any non-optical device):
+
+	1) Prepare the USB drive:
+
+		1.1) Get a removable USB drive and plug it into your computer;
+		1.2) Back up any data on the drive you want to preserve, as EVERYTHING WILL BE DELETED!
+
+		1.3) Identify the drive's device node (for Linux):
+
+			1.3.1) Open the terminal, run "lsblk" and identify the USB drive by its capacity;
+			1.3.2) Note its name (under the "NAME" column), likely in the format of "sdX", where "X" is a letter;
+
+		1.4) Identify the drive's letter (for Windows):
+
+			1.4.1) Open explorer and look for the drive under the "This PC" sections;
+			1.4.2) Otherwise identify and initialise (if needed) the drive from "Disk Management".
+
+	2) Flash the image:
+
+		2.1) Use the dedicated flashing script ("burn-usb.sh", for Linux):
+
+			2.1.1) Open the terminal and navigate to the project's directory;
+			2.1.2) Run the script with the following syntax: "sudo ./burn-usb.sh /dev/sdX", where "sdX" is the device's name;
+			2.1.3) ALL DATA WILL BE LOST, confirm with "yes"; if the device is not a USB drive, confirm with "CONFIRM";
+			2.1.4) After the script exited, safely remove the USB drive by ejecting it if necessary.
+
+		2.2) Otherwise flash the image manually (for Linux):
+
+			2.2.1) Open the terminal and navigate to the project's directory;
+			2.2.2) In the following commands, replace "sdX" with the device's name;
+			2.2.3) Unmount any partition on the drive with "sudo umount /dev/sdX*";
+			2.2.4) Run "sudo dd if=build/main_floppy.img of=/dev/sdx bs=512 conv=fsync status=progress", ALL DATA WILL BE LOST;
+			2.2.5) After the operation completed, safely remove the drive by ejecting it if necessary.
+
+		2.3) Use Rufus (for Windows):
+
+			2.3.1) Launch the Rufus executable and select the USB drive from the 'Device' dropdown menu;
+			2.3.2) If you are trying to use a USB hard drive, check 'List USB Hard Drives' under 'Show advanced drive properties';
+			2.3.3) On the right click on 'SELECT', navigate to the project's folder, then open "build" and select "main_floppy.img";
+			2.3.4) At the bottom, click 'START', confirm with 'OK', after finishing close Rufus and eject the drive.
+
+		2.4) Copy the ISO to Ventoy (for Ventoy-initialised drives only, both Windows and Linux):
+
+			2.4.1) Follow the instructions on how to generate an ElTorito ISO 9660 image from step 1;
+			2.4.2) Plug in your Ventoy drive and copy the generated ISO image to the main "Ventoy" partition;
+			2.4.3) Safely eject the drive to ensure data is fully written onto it.
+
+	3) Execute the OS on the target PC:
+
+		3.1) Plug in the USB drive and start up the target computer;
+		3.2) Enter the BIOS by spamming or holding a specific key (usually 'DEL', 'F2', 'F12', 'ESC' or others, check the manual);
+
+		3.3) Enable USB emulation as floppy (procedure is model-dependent):
+
+			3.3.1) Navigate to the "Advanced Features" menu (sometimes "Integrated Peripherals" or others);
+			3.3.2) Look for "USB emulation" or similar and set it to "Auto" or "Floppy" (or similar, if "Auto" doesn't work).
+
+		3.4) Boot from the USB drive:
+
+			3.4.1) Go back to the main setup screen and then to the "Boot" menu or similar (sometimes "Advanced BIOS Features");
+			3.4.2) In the boot priority list, select "USB Generic Flash Disk" or similar;
+			3.4.3) If it doesn't appear, enable "Boot from removable media" (or similar) if disabled;
+			3.4.4) Otherwise, in the "Removable Device Priority" list (or similar), set "USB Generic Flash Disk" as the first entry;
+			3.4.5) Confirm that it now appears amongst the boot options, then set it as the first one;
+			3.4.5) Go back to the main menu and then select "Save and Exit Setup" (or similar) to boot from the USB device.
+
+		3.5) To boot from the ISO with Ventoy:
+
+			3.5.1) Follow the instructions to test on real hardware from a USB drive from step 3.4
+
+	4) Restore the USB drive:
+
+		4.1) Plug the USB drive back into your computer and back up any data, as EVERYTHING WILL BE DELETED!
+
+		4.2) Use the dedicated restore script ("restore-usb.sh", USB drives only):
+
+			4.2.1) Open the terminal and navigate to the project's directory;
+			4.2.2) The device name might have changed, so get the correct one by following these instructions at step 1.3;
+			4.2.3) Run the script with the following syntax: "sudo ./restore-usb.sh /dev/sdX", where "sdX" is the device's name;
+			4.2.4) ALL DATA WILL BE LOST, confirm with "yes"; if the device is not a USB drive, the script will abort;
+			4.2.5) After the script exited, the drive will have been reformatted to FAT32 and will be ready for use.
+
+		4.3) Otherwise restore the drive manually (USB drives only):
+
+			4.3.1) Open the terminal and identify the correct device by following these instructions at step 1.3;
+			4.3.2) In the following commands, replace "sdX" with the devices name;
+			4.3.3) Unmount any partition on the drive with "sudo umount /dev/sdX*";
+			4.3.4) Wipe any leftover filesystem signatures with "sudo wipefs -a /dev/sdX";
+			4.3.5) Create a new MBR partition table with "sudo parted /dev/sdX mklabel msdos";
+			4.3.6) Create a new primary FAT32 partition with "sudo parted /dev/sdX mkpart primary fat32 1MiB 100%";
+			4.3.7) Make the FAT32 filesystem with "sudo mkfs.vfat -F32 /dev/sdX1", after which the drive is usable again.
+
+
+For broader compatibility and ease of use, you might decide to pack the raw image into an ISO 9660 image with the ElTorito extention.
+Because the OS only supports booting from a 1.44MiB FAT12-formatted floppy disk, you must set the emulation mode to floppy:
+since not all BIOSes support ElTorito ISOs with floppy-emulation, it is recommended to check for support prior to testing the OS.
+HDD-emulation and no-emulation modes can't be used yet, as the OS doesn't support HDDs nor it can parse the ISO 9660 filesystem.
+
+To boot the OS from an optical support, you will need to have burnt on it a bootable ISO image, obtainable with the following process.
+You can skip the ISO generation if you are going to use the ElTorito ISO ("eltorito_disc.iso") included in the repository.
+If instead you want to boot from a USB drive but the BIOS doesn't support USB floppy emulation, you could still use ISO image:
+since it would otherwise make not difference though, you will need a tool like Ventoy, which preserves the whole ISO.
+
+For semplicity of instructions, label and time metadata customisation will not be covered:
+the ISO image distributed on GitHub though will have them included.
+
+To generate an ElTorito ISO 9660 image (mandatory for optical disks):
+
+	1) Generate the ISO image (for Linux):
+
+		1.1) Use the dedicated script:
+
+			1.1.1) From the terminal, navigate to the project's directory and run "./gen-iso.sh".
+
+		1.2) Generate the image manually:
+
+			1.2.1) From the terminal, navigate to the project's directory, then the "build" directory;
+			1.2.2) The run "genisoimage -udf -V "LARI OS" -o eltorito_disc.iso -b main_floppy.img -c boot.cat main_floppy.img".
+
+	2) Generate the ISO image (for Windows)
+
+		2.1) Use ImgBurn:
+
+			2.1.1) Launch ImgBurn and select 'Create image file from files/folders";
+			2.1.2) Add the image by clicking 'Browse for a file...' (file icon with magnifying glass);
+			2.1.3) Navigate to the project's "build" folder and select "main_floppy.img";
+			2.1.4) Under 'Destination', click 'Browse for a folder...' (folder icon with magnifying glass);
+			2.1.5) Navigate to the "build" folder, name the file "eltorito_disc.iso" then click 'Save';
+			2.1.6) At the top-right, select 'Labels', enter "LARI OS" besides 'UDF' and click the green arrow icon;
+			2.1.7) At the top-right, select 'Advanced' then 'Bootable Disc' and check 'Make Image Bootable';
+			2.1.8) Under 'Emulation Type' select 'Floppy Disk (1.44 MB)' to specify floppy-emulation;
+			2.1.9) Under 'Boot Image', browse for "main_floppy.img" and select it (like steps 2.1.2 and 2.1.3);
+			2.1.9) At the bottom-left, click the main 'Build' icon (folders to ISO), then continue with 'Yes';
+			2.1.10) Check the summary, confirm with 'OK', then exit with 'OK'.
+
+		2.2) Use the Linux utilities (WSL-only):
+	
+			2.2.1) Launch PowerShell or Command Prompt and run "wsl" to enter the WSL terminal;
+			2.2.2) Follow the instructions to generate the ISO image on Linux from step 1.
+
+
+The instructions for optical disks assume you have access to an optical disc drive with writing capabilities:
+if not, then it will be impossible to burn the image onto a CD/DVD, which they themselves need to be writable.
+If you use non-rewritable discs, you won't be able to burn another image onto them, therefore proceed wisely:
+to ensure you are using a rewritable media, check if it has "RW" in the name (ex. "DVD-RW", "DVD+RW DL", etc).
+
+To use an optical disc:
+
+	1) Prepare the optical disc:
+
+		1.1) Get a writable (blank if non-rerwritable) optical disc and insert it into your optical drive;
+		1.2) Back up any data on the disc you want to preserve, as EVERYTHING WILL BE DELETED!
+
+		1.3) Identify the drive's device node (for Linux):
+
+			1.3.1) Open the terminal, run "lsblk" and identify the optical drive by its capacity;
+			1.3.2) Note its name (under the "NAME" column), likely in the format of "srX", where "X" is a number;
+
+		1.4) Identify the drive's letter (for Windows):
+
+			1.4.1) Open explorer and look for the optical drive under the "This PC" section;
+			1.4.2) Otherwise identify the drive from "Disk Management".
+
+	2) Generate the ISO image:
+
+		2.1) Follow the instructions on how to generate an ElTorito ISO 9660 image from step 1.
+
+	3) Blank the disc (for rewritable discs, only if necessary):
+
+		3.1) Use the dedicated blanking script ("blank-dvd.sh", for Linux):
+
+			3.1.1) Open the terminal and navigate to the project's directory;
+			3.1.2) Run the script with the following syntax: "sudo ./blank-dvd.sh /dev/srX", where "srX" is the device name;
+			3.1.3) ALL DATA WILL BE LOST, confirm with "yes"; wait for the script to exit successfully, then proceed.
+
+		3.2) Blank the disc manually (for Linux):
+
+			3.2.1) Open the terminal and navigate to the project's directory;
+			3.2.2) If mounted, unmount the drive with "umount /dev/srX", where "srX" is the device name;
+			3.2.3) Run "sudo wodim dev=/dev/srX blank=fast", where "srX" is the device name; ALL DATA WILL BE LOST, be sure.
+
+		3.3) Use ImgBurn (for Windows):
+
+			3.3.1) Launch ImgBurn and select "Write image file to disc";
+			3.3.2) Check at the bottom if it says "Ready", in which case erasing is not needed;
+			3.3.3) Otherwise, at the bottom-right set the write speed to "2x";
+			3.3.4) In the "Destination" dropdown menu on the left, select the correct drive as ALL DATA WILL BE LOST;
+			3.3.5) Then click the little "Erase disc" icon under the drive's name to the left and select "Quick".
+
+	4) Burn the ISO image:
+
+		4.1) Use the dedicated burning script ("burn-dvd.sh", for Linux):
+
+			4.1.1) Open the terminal and navigate to the project's directory;
+			4.1.2) Run the script with the following syntax: "sudo ./burn-dvd.sh /dev/srX", where "srX" is the device name;
+			4.1.3) The disc will finalise and become read-only PERMANENTLY (unless rewritable), confirm with "yes";
+			4.1.4) The script will fail if the device has already been finalised; after it's done, eject the disc safely.
+
+		4.2) Burn the ISO manually (for Linux):
+
+			4.2.1) Open the terminal and navigate to the project's directory;
+			4.2.2) If mounted, unmount the drive with "umount /dev/srX", where "srX" is the device name;
+			4.2.3) Run "sudo wodim dev=/dev/srX -sao -v -data build/eltorito_disc.iso", where "srX" is the device name;
+			4.2.4) After the command finished, you can safely eject the drive.
+
+		4.3) Use ImgBurn (for Windows):
+
+			4.3.1) Launch ImgBurn and select "Write image file to disc";
+			4.3.2) In the "Destination" dropdown menu on the left, select the correct drive;
+			4.3.3) At the top-left under "Source", click the first icon and in the build folder select "eltorito_disc.iso";
+			4.3.4) At the bottom-right set the write speed to "2x" and the number of copies to 1;
+			4.3.5) At the bottom-left, click the main "Write" icon (image to disc), then wait for the process to finish.
+
+	5) Execute the OS on the target PC:
+
+		5.1) Load the disc:
+
+			5.1.1) Prepare the disc and power on the computer;
+			5.1.2) Enter the BIOS by spamming or holding a specific key (usually 'DEL', 'F2', 'F12', 'ESC' or others, check the manual);
+			5.1.3) Open the optical drive tray and insert the disc, then load it and let it spin up.
+
+		5.2) Boot from the disc:
+
+			5.2.1) Navigate to the "Boot" menu or similar (sometimes "Advanced BIOS Features");
+			5.2.2) In the boot priority list, select the first entry and set it to your optical drive's name;
+			5.2.3) It will often contain words like "CD", "DVD", "ODD", "CD/DVD" and similar others;
+			5.2.4) If it doesn't appear, under the "Boot" menu enable "Boot from DVD Drive" or similar;
+			5.2.5) Otherwise, in the "Optical Disc Drive Priority" list (or similar), set your optical drive name as the first option;
+			5.2.6) Confirm that now appears amongst the boot options, then set it to the first one;
+			5.2.7) Go back to the main menu or to the "Exit" one and select "Save and Exit Setup" (or similar) to boot.
+
+	6) Restore the disc (for rewritable discs only):
+
+		6.1) Follow the instruction to blank a disc from step 3.
+
+
+
+
+TABLE OF CONTENTS:
+
+The following list contains all the project files (-) and folders (>) included in the repository (folders first, aphabetical order):
+
+	> "bochs": Bochs configuration files and logs folder
+
+		- "bochsrc": Bochs configuration file
+
+	> "build": all the program's built binaries
+
+		> "tools": executables for C testing tools
+
+			- "fat12_reader": FAT12 image reader C tool executable
+
+		- "bootloader.bin": bootloader's assembled binary
+
+		- "copy_floppy.img": copy of the OS image (for use in emulators and VMs)
+
+		- "eltorito_disc.iso": ElTorito bootable ISO 9660 image
+
+		- "main_floppy.img": the entire raw floppy OS image
+
+		- "shell.bin": shell's assembled binary
+
+	> "data": extra data files included in the image (text and images for example)
+
+		- "test.txt": text file used for testing purposes
+
+	> "src": all the OS source code
+
+		> "bootloader": all the bootloader source code
+
+			- "boot.asm": the bootloader main code
+
+		> "shell": all the shell source code
+
+			- "shell.asm": the shell main code
+
+		> "functions": shell functions source code
+
+			- "change_page.asm": change the displayed page
+
+			- "printc.asm": print a character
+
+			- "printd16.asm": print a 16-bit integer
+
+			- "printd32.asm": print a 32-bit integer
+
+			- "printr.asm": print a character repeatedly
+
+			- "prints.asm": print a string
+
+			- "strcmp.asm": compare two strings
+
+	> "tools": contains all the C tools source code
+
+		> "fat": contains all the FAT C tools source code
+
+			- "fat12_reader.c": FAT12 image reader C code
+
+	- "blank-dvd.sh": script for blanking RW DVDs
+
+	- "burn-dvd.sh": script for burning the ISO to a disc
+
+	- "burn-usb.sh": script for flashing the image to a USB drive
+
+	- CHANGELOG.md: Markdown record of past changes
+
+	- "debug.sh": script for running the OS in Bochs
+
+	- "gen-iso.sh": script to generate an ElTorito ISO
+
+	- "instructions.txt": instructions for testing and building the OS
+
+	- "LICENSE.txt": license file
+
+	- "Makefile": used by Make to build the entire project
+
+	- "README.md": Markdown introduction file
+
+	- "reset-image.sh": script to reset the copy image
+
+	- "restore-usb.sh": script to format a USB drive to FAT32
+
+	- "run.sh": script for running the OS in QEMU
+
+	- "todo.txt": list of likely future updates
+
+
+
+
+[A guide on how to run a disassembled view of the OS in Bochs is planned.]
+
 
 
 

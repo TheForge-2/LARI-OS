@@ -1,8 +1,11 @@
 /*
-Copyright © 2024-2025 TheForge-2
+Copyright © 2024-2026 Alessandro Meles (TheForge-2)
 This file is part of the LARI OS project.
 Use is restricted to personal, non-commercial, educational and experimental purposes only.
-See 'LINCENSE.txt' in the project root for full terms.
+See 'LICENSE.txt' in the project root for full terms.
+
+Based on the code shown in Nanobyte's tutorial "Building an OS", episode 3.
+Expanded with comments and partially restructured.
 */
 
 
@@ -194,7 +197,7 @@ int main (int argc, char** argv){
 
 	// Minimum arguments check
 	if (argc < 3){
-		printf("Sintax: %s <disk image> <file name>\n", argv[0]);
+		printf("Usage: %s <disk image> <file name>\n", argv[0]);
 		return -1;
 	}
 

@@ -1,4 +1,4 @@
-Copyright © 2024-2025 TheForge-2
+Copyright © 2024-2026 Alessandro Meles (TheForge-2)
 
 All rights reserved.
 
@@ -16,9 +16,9 @@ The following are prohibited:
 
 - Commercial use of the software or any part of its code;
 - Redistribution of the software, in original or modified form;
-- Modification, adaptation, or creation of derivative works.
+- Modification, adaptation, or creation of derivative works (unless given written permission from the creator).
 
 
 No warranty is provided. The software is offered "as is" without warranty of any kind, express or implied.
 
-By using or accessing this software, you agree to these terms.
+By using, downloading or accessing this software, you agree to these terms.

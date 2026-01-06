@@ -1,13 +1,12 @@
-; Copyright © 2024-2025 TheForge-2
+; Copyright © 2024-2026 Alessandro Meles (TheForge-2)
 ; This file is part of the LARI OS project.
 ; Use is restricted to personal, non-commercial, educational and experimental purposes only.
-; See 'LINCENSE.txt' in the project root for full terms.
+; See 'LICENSE.txt' in the project root for full terms.
 
 
 
 
 ; Developer's notes:
-; - revise comments and structure;
 ; - currently nothing.
 
 
@@ -23,9 +22,9 @@
 ; - The VBR (Volume Boot Record) for floppy disks, as partitions don't exist on them.
 
 ; A bootloader should include:
-; - Headers for the used filesystem and for disk geometry,
-; - Code and functions to do its duties,
-; - Boot signature (0x55AA) at the last two bytes, compulsory to indicate a valid bootable MBR/VBR.
+; - headers for the used filesystem and for disk geometry;
+; - code and functions to do its duties;
+; - boot signature (0x55AA) at the last two bytes, compulsory to indicate a valid bootable MBR/VBR.
 
 ; For retrocompatibility reasons, the CPU starts in 16-bit real mode, with 20-bit segment:offset addressing scheme.
 ; This limits the memory access to a maximum of 0x100000 bytes, exactly 1MiB or 1024KiB, called the low memory.
@@ -75,15 +74,15 @@
 ; Head:			read-write physical head.
 
 ; For 1.44MiB floppy disks, the most common disk geometry values are:
-; - 1 platter per media,
-; - 2 surfaces or heads per platter,
-; - 80 cylinders per media,
-; - 80 tracks per surface,
-; - 18 sectors per track,
-; - 36 sectors per cylinder,
-; - 1440 sectors per head,
-; - 2880 sectors per platter,
-; - 512 bytes per sector.
+; - 1 platter per media
+; - 2 surfaces or heads per platter
+; - 80 cylinders per media
+; - 80 tracks per surface
+; - 18 sectors per track
+; - 36 sectors per cylinderp
+; - 1440 sectors per head
+; - 2880 sectors per platter
+; - 512 bytes per sector
 
 ; END OF DISK INFORMATION.
 
@@ -93,30 +92,30 @@
 ; ABBREVIATIONS:
 
 ; General terms:
-; - BIOS:	Basic Input Output System,
-; - CPU:	Central Processing Unit,
-; - OS:		Operating System,
-; - MBR:	Master Boot Record,
-; - VBR:	Volume Boot Record,
-; - OEM:	Original Equipment Manufacturer,
-; - INT: 	Interrupt,
-; - TTY:	TeleTYpe.
+; - BIOS:	Basic Input Output System
+; - CPU:	Central Processing Unit
+; - OS:		Operating System
+; - MBR:	Master Boot Record
+; - VBR:	Volume Boot Record
+; - OEM:	Original Equipment Manufacturer
+; - INT: 	Interrupt
+; - TTY:	TeleTYpe
 
 ; Disk related:
-; - BPB:	BIOS Parameter Block,
-; - EBPB:	Extended BIOS Parameter Block,
-; - EBR:	Extended Boot Record,
-; - FAT:	File Allocation Table,
-; - RD:		Root Directory,
-; - LBA: 	Logical Block Addressing,
-; - CHS:	Cylinder Head Sector.
+; - BPB:	BIOS Parameter Block
+; - EBPB:	Extended BIOS Parameter Block
+; - EBR:	Extended Boot Record
+; - FAT:	File Allocation Table
+; - RD:		Root Directory
+; - LBA: 	Logical Block Addressing
+; - CHS:	Cylinder Head Sector
 
 ; Memory and registers related:
-; - Addr:	Address,
-; - Seg:	Segment,
-; - Offs:	Offset,
-; - xLb:	"x lower bits from start",
-; - xHb:	"x higher bits from half".
+; - Addr:	Address
+; - Seg:	Segment
+; - Offs:	Offset
+; - xLb:	"x lower bits from start"
+; - xHb:	"x higher bits from half"
 
 ; END OF ABBREVIATIONS.
 
@@ -141,7 +140,14 @@ SHELL_OFFS equ 0x0000 ; Offset of the shell.
 
 
 
-; ########################################
+
+
+; ================================================================================
+; ================================================================================
+
+
+
+
 
 
 ; NECESSARY HEADERS:
@@ -218,7 +224,7 @@ bpb_large_sector_count: dd 0
 ; END OF BIOS PARAMETER BLOCK.
 
 
-; ####################
+; ================================================================================
 
 
 ; EXTENDED BIOS PARAMETER BLOCK:
@@ -245,7 +251,7 @@ ebr_volume_id: dd 0x27182818
 
 ; Volume label string, padded with spaces.
 ; 0x02B, 11.
-ebr_volume_label: db "Lari-OS mbr"
+ebr_volume_label: db "LARI-OS mbr"
 
 ; System identifier string (i.e. "FAT12", "FAT16"), padded with spaces. Not to trust.
 ; 0x036, 8.
@@ -258,7 +264,12 @@ ebr_system_id: db "FAT12   "
 
 
 
-; ########################################
+
+
+; ================================================================================
+; ================================================================================
+
+
 
 
 
@@ -321,7 +332,8 @@ start:
 
 
 
-; ########################################
+; ========================================
+; ========================================
 
 
 
@@ -354,10 +366,10 @@ root_dir_sectors:
 	mov ax, [bpb_dir_entries_count] ; AX contains the total number of entries in the root directory.
 	mov bx, 16
 	div bx ; The same as doing * 32 / 512.
-		   ; NOTE!: bytes_per_sector is hardocoded to 512.
+		   ; NOTE!: bytes_per_sector is hardcoded to 512.
 
 	; In case the number isn't whole, increment it by 1.
-	test dx, dx ; Check if there is a remainder?
+	test dx, dx ; Check if there is a remainder.
 	jz root_dir_read ; If not, jump directly.
 	inc ax ; Else, increment the number of sectors by one not to truuncate the root directory.
 
@@ -368,7 +380,7 @@ root_dir_read:
 	mov dh, al ; Move the sector size into DH.
 	mov ax, [bpb_sectors_per_fat] ; Load the number of sectors per FAT in AX.
 	shl ax, 1 ; Multiply AX by 2, the fat count.
-			  ; NOTE!: fat_count is hardocoded to 2.
+			  ; NOTE!: fat_count is hardcoded to 2.
 	inc ax ; Increment AX, adding the number of reserved sectors, obtaining the root directory LBA.
 		   ; NOTE!: reserved_sectors is hardcoded to 1.
 	mov dl, [ebr_drive_number] ; Load the drive number in DL.
@@ -387,7 +399,8 @@ lba_data:
 
 
 
-; ########################################
+; ========================================
+; ========================================
 
 
 
@@ -404,7 +417,7 @@ lba_data:
 ;		In that case, free_offs will lose meaning after the load operation is complete.
 ;		The user can still preserve its meaning by keeping track of the segments separatly.
 
-; Set up the registers and call the needed functions to the start the shell loading process.
+; Set up the registers and call the needed functions to start the shell loading process.
 .shell_load:
 
 	; Set up the registers to search the shell.
@@ -486,7 +499,7 @@ lba_data:
 				   ; NOTE!: The FAT address is hardcoded to 0x7E00.
 	add si, ax ; Add the FAT address to the offset of the byte to get its address.
 	mov ax, word [si] ; Read the byte and the next one to AX.
-	or dx, dx ; Check if there was a remainder?
+	or dx, dx ; Check if there was a remainder.
 	jz .even ; If not, then the entry was even.
 
 ; Decode the value for an odd entry: remove the last 4 bits and divide by 16.
@@ -536,7 +549,8 @@ lba_data:
 
 
 
-; ########################################
+; ========================================
+; ========================================
 
 
 
@@ -546,24 +560,23 @@ lba_data:
 
 ; PUTS:
 
-; 'puts': print a string contained at a spacific address.
+; Print a string contained at a spacific address.
 
 ; Inputs:
-; SI: memory offset where the string is (actually DS:SI, but DS should be 0).
+; - SI = memory offset where the string is (actually DS:SI, but DS should be 0).
 
-; Outputs:
-; All general purpose registers and segment registers are preserved.
+; Outputs nothing, all general purpose registers and segment registers are preserved.
 
 puts:
 
 	pusha ; Save all the registers (more byte efficient).
 	cld ; Clear the direction flag, so that SI gets incremented.
 
-	; Loop for printing characters.
+; Loop for printing characters.
 .loop:
 
 	lodsb ; Loads character at DS:SI into AL.
-	or al, al ; Check if AL is NULL?
+	or al, al ; Check if AL is NULL.
 	jz .done ; If NULL, then escape the loop.
 
 	mov ah, 0x0E ; Service for TTY (TeleTYpe) Mode.
@@ -580,12 +593,19 @@ puts:
 ; END OF PUTS.
 
 
-; ####################
+
+
+; ========================================
+
+
 
 
 ; WAIT_KEY_AND_REBOOT:
 
 ; In case of an error or boot failure, it waits for a key press and reboots the system.
+
+; Doesn't take any input, the system reboots after it executes.
+
 wait_key_and_reboot:
 
 	sti ; Set the interrupt flag, enabling interrupts from the keyboard.
@@ -598,7 +618,11 @@ wait_key_and_reboot:
 ; END OF WAIT_KEY_AND_REBOOT.
 
 
-; ####################
+
+
+; ========================================
+
+
 
 
 ; LBA AND CHS EXPLANATION:
@@ -607,19 +631,21 @@ wait_key_and_reboot:
 ; CHS (Cylinder-Head-Sector) is a "physical" way of doing so: it takes into account the geometry of the disk.
 ; LBA to CHS conversion is needed when working with legacy booting.
 
-; To go from CHS to LBA knowing 5 values is needed:
-; - Cylinder of the media,
-; - Head of the cylinder (the surface the track is located on),
-; - Sector of the track,
-; - Heads per cylinder,
+; To go from CHS to LBA, it is required to know 5 values:
+; - Cylinder of the media;
+; - Head of the cylinder (the surface the track is located on);
+; - Sector of the track;
+; - Heads per cylinder;
 ; - Sectors per track.
+
 ; Formula for CHS to LBA conversion:
 ; LBA = (Cylinder * sectors_per_track * heads_per_cylinder) + (Head*sector_per_track) + Sector
 
-; To go from LBA to CHS knowing 3 values is needed:
-; - LBA value of the sector,
-; - Heads per cylinder,
+; To go from LBA to CHS, it is required to know 3 values:
+; - LBA value of the sector;
+; - Heads per cylinder;
 ; - Sectors per track.
+
 ; Formula for LBA to CHS conversion:
 ; Cylinder = LBA / (sectors_per_track * heads_per_cylinder)
 ; Head = (LBA / sectors_per_track) % heads_per_cylinder
@@ -629,12 +655,16 @@ wait_key_and_reboot:
 ; END OF LBA AND CHS EXPLANATION.
 
 
-; ####################
+
+
+; ========================================
+
+
 
 
 ; DISK_READ:
 
-; 'disk_read': read sectors from a disk to memory, at the specified address.
+; Read sectors from a disk to memory, at the specified address.
 
 ; At the same time it updates the memory offset of the next free byte.
 ; If the passed adderess is not the same as the address of the next free byte, that free memory region will get lost.
@@ -643,16 +673,15 @@ wait_key_and_reboot:
 ; NOTE!: The function doesn't automatically update the memory segment, as it should only be used by the bootloader.
 ;		 If the loaded data overflows the segment, it is the user's duty to handle it.
 
-; NOTE!: The function might never return if it encounters a disk error when calling INT 0x10.
+; NOTE!: The function might never return if it encounters a disk error when calling INT 0x13.
 
 ; Inputs:
-; AX: LBA address;
-; ES:BX: memory address where to store the read data;
-; DH: number of sectors to read (maximum of 128);
-; DL: drive number.
+; - AX = LBA address;
+; - ES:BX = memory address where to store the read data;
+; - DH = number of sectors to read (maximum of 128);
+; - DL = drive number.
 
-; Outputs:
-; All general purpose registers and segment registers are preserved.
+; Outputs nothing, all general purpose registers and segment registers are preserved.
 
 disk_read:
 
@@ -672,11 +701,11 @@ disk_read:
 		int 0x13 ; Call Diskette BIOS Services.
 		popa ; Pop all the registers from the stack.
 
-		jnc .next_offs ; Jump to .next_addr if CF is cleared (the operation succeeded, see BIOS INT Table).
+		jnc .next_offs ; Jump to .next_offs if CF is clear (the operation succeeded, see BIOS INT Table).
 		call disk_reset ; Function to reset the drive to attempt another disk operation.
-		dec di ; Decrements the counter.
-		test di, di ; DI is 0?
-		jnz .retry ; Jump back to retry again.
+		dec di ; Decrement the counter.
+		test di, di ; Check if DI is 0.
+		jnz .retry ; If not, jump back to retry again.
 
 	; If 3 tries were made and the read operation still didn't succeed, then we enter the fail section.
 	.fail:
@@ -704,12 +733,24 @@ disk_read:
 ; END OF DISK_READ.
 
 
-; ####################
+
+
+; ========================================
+
+
 
 
 ; DISK_RESET:
 
 ; Reset the disk C, H and S to attempt another disk operation.
+
+; NOTE!: The function might never return if it encounters a disk error when calling INT 0x13.
+
+; Inputs:
+; - DL = drive number.
+
+; Outputs nothing, all general purpose registers and segment registers are preserved.
+
 disk_reset:
 
 	pusha ; Push all registers on the stack, preventive measure.
@@ -717,21 +758,28 @@ disk_reset:
 	stc	; STC (Set Carry Flag) sets the carry flag (CF=1), preventive measure (some BIOSes don't set it).
 	int 0x13 ; Call Diskette BIOS Services.
 	jc floppy_error ; If the disk can't be reset, the disk operations automatically fail.
-					; It disregards how many retries were left in DI.
+					; It disregards how many retries were left in DI (from disk_read).
 
 	popa ; Pop all registers from the stack.
 	ret ; Return to the .retry section in case the disk did reset.
 
-; END OF DISK RESET.
+; END OF DISK_RESET.
 
 
-; ####################
+
+
+; ========================================
+
+
 
 
 ; FLOPPY_ERROR:
 
 ; In case INT 0x13,2 fails 3 times at reading from the floppy or the disk can't be reset, we end up here.
 ; Print an error message and halt the CPU.
+
+; Doesn't take any input, the system reboots after it executes.
+
 floppy_error:
 
 	; Move the string address to SI and call the puts function.
@@ -741,10 +789,14 @@ floppy_error:
 	; Start a reboot sequence.
 	jmp wait_key_and_reboot
 
-; END OF FLOPPY ERROR.
+; END OF FLOPPY_ERROR.
 
 
-; ####################
+
+
+; ========================================
+
+
 
 
 ; LBA_TO_CHS:
@@ -752,13 +804,13 @@ floppy_error:
 ; Convert an LBA address to a CHS one.
 
 ; Inputs:
-; AX: LBA address.
+; AX = LBA address.
 
 ; Outputs (already set up for INT 0x13):
-; CX (bits 6-15): Cylinder (bits 6 and 7 are the highest bits, lowest is 7);
-; CX (bits 0-5): Sector;
-; DH: Head;
-; DL: Drive Number.
+; - CX (bits 6-15) = cylinder (bits 6 and 7 are the highest bits, lowest is 7);
+; - CX (bits 0-5) = sector;
+; - DH = head;
+; - DL = drive number.
 
 lba_to_chs:
 
@@ -811,10 +863,21 @@ lba_to_chs:
 
 ; END OF LBA_TO_CHS.
 
+; END OF BOOTLOADER'S FUNCTIONS.
+
+; END OF BOOTLOADER'S CODE.
 
 
 
-; ########################################
+
+
+
+; ================================================================================
+; ================================================================================
+
+
+
+
 
 
 ; TEXT MESSAGES:
@@ -831,7 +894,7 @@ msg_loading_shell: db "Loading SHELL...", ENDL, 0
 
 
 
-; ########################################
+; ================================================================================
 
 
 
@@ -858,7 +921,7 @@ shell_filename: db "SHELL   BIN"
 
 
 
-; ########################################
+; ================================================================================
 
 
 
@@ -879,53 +942,63 @@ dw 0xAA55 ; Reversed since it is in little-endian.
 
 
 
-; ########################################
+
+
+; ================================================================================
+; ================================================================================
+
+
 
 
 
 
 ; BIOS INTERRUPTS REFERENCE TABLE (USED INTs ONLY, INCOMPLETE!):
 
-; INT 0x10, Video BIOS Services.
 
-; AH: 0x0E, Write Text in Teletype Mode.
+; INT 0x10, Video BIOS Services:
+
+; AH = 0x0E, Write Text in Teletype Mode.
 ; Inputs:
-; - AH = Service for INT 0x10, in this case 0x0E.
-; - AL = ASCII character to write.
-; - BH = Page number (text modes), default 0x00.
+; - AH = Service for INT 0x10, in this case 0x0E;
+; - AL = ASCII character to write;
+; - BH = Page number (text modes), default 0x00;
 ; - BL = Foreground pixel colour (graphics modes), ignorable in non-graphics mode.
 ; Outputs:
 ; - None
 
 
-; ####################
+
+
+; ================================================================================
+
+
 
 
 ; INT 0x13, Diskette BIOS Services.
 
-; AH: 0x02, Read Disk Sectors.
+; AH = 0x02, Read Disk Sectors.
 ; Inputs:
-; - AH = Service for INT 0x13, in this case 0x02.
-; - AL = Number of sectors to read (1-128 dec).
-; - CH = Track/Cylinder number (0-1023 dec, see below).
-; - CL = Sector number (1-17 dec, see below).
-; - DH = Head number (0-15 dec).
-; - DL = Drive number (0=1st_floppy, 1=2nd_floppy, 0x80=drive_0, 0x81=drive_1).
+; - AH = Service for INT 0x13, in this case 0x02;
+; - AL = Number of sectors to read (1-128 dec);
+; - CH = Track/Cylinder number (0-1023 dec, see below);
+; - CL = Sector number (1-17 dec, see below);
+; - DH = Head number (0-15 dec);
+; - DL = Drive number (0=1st_floppy, 1=2nd_floppy, 0x80=drive_0, 0x81=drive_1);
 ; - ES:BX = Pointer to buffer in memory, where to store read sectors.
 ; Outputs:
-; - AH = Status of operation (0=fine, !0=error, more detailed than CF).
-; - AL = Number of sectors actually read.
+; - AH = Status of operation (0=fine, !0=error, more detailed than CF);
+; - AL = Number of sectors actually read;
 ; - CF = Simplified status (0=successful, 1=error).
-; CX = [7-6-5-4-3-2-1-0-9-8-5-4-3-2-1-0] CX bits at input.
-;	   |     8Lb C     | ^ |   6b S    |
-;					  [2Hb C]
+; CX bits at input: CX = [7-6-5-4-3-2-1-0-9-8-5-4-3-2-1-0]
+;						 |     8Lb C     | ^ |   6b S    |
+;										[2Hb C]
 
-; AH: 0x00, Reset Disk System,
+; AH = 0x00, Reset Disk System.
 ; Inputs:
-; - AH = Service for INT 0x13, in this case 0x00.
+; - AH = Service for INT 0x13, in this case 0x00;
 ; - DL = Drive number (0=1st_floppy, 1=2nd_floppy, 0x80=drive_0, 0x81=drive_1).
 ; Outputs:
-; - AH = Status of operation (0=fine, !0=error, more detailed than CF).
+; - AH = Status of operation (0=fine, !0=error, more detailed than CF);
 ; - CF = Simplified status (0=successful, 1=error).
 
 ; END OF BIOS INTERRUPTS REFERENCE TABLE.

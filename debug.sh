@@ -1,1 +1,2 @@
-bochs -f bochs/bochs_config
+cd bochs
+bochs -f bochsrc -dbg

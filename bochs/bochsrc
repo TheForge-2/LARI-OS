@@ -1,0 +1,12 @@
+megs: 4
+romimage: file=/usr/local/share/bochs/BIOS-bochs-legacy
+vgaromimage: file=/usr/local/share/bochs/VGABIOS-lgpl-latest.bin
+floppya: 1_44=../build/main_floppy.img, status=inserted
+boot: floppy
+mouse: enabled=1
+display_library: x, options="gui_debug"
+log: bochslog.txt
+panic: action=ask
+error: action=report
+info: action=report
+debug: action=ignore
