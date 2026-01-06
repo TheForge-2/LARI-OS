@@ -1,5 +1,5 @@
 /*
-Copyright © 2024-2025 TheForge-2
+Copyright © 2024-2026 Alessandro Meles (TheForge-2)
 This file is part of the LARI OS project.
 Use is restricted to personal, non-commercial, educational and experimental purposes only.
 See 'LICENSE.txt' in the project root for full terms.

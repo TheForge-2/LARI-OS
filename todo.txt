@@ -5,8 +5,7 @@ Bugs and issues, once known, will be fixed as soon as possible, whilst features 
 Short-term:
 - add an italian translation for the instructions;
 - add an italian version for the OS output;
-- add instructions for ISO creation and real hardware use;
-- revise comments and structure of 'boot.asm';
+- revise structure of 'boot.asm';
 - add colour support and manual cursor tracking for 'printc' in the shell.
 
 Mid-term:

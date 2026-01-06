@@ -1,12 +1,10 @@
-[An italian translation of this text is coming soon.]
-
 # **LARI OS**
 
 ## About the project
 
 Welcome to LARI OS!
 
-This is the first InDev public release: InDev 0.0.
+The current version is InDev 0.1.
 
 LARI OS is a 16-bit real mode operating system (OS), developed entirely by me (Alessandro Meles) for educational purposes.
 The official repository is hosted on GitHub at "https://github.com/TheForge-2/LARI-OS".
@@ -23,7 +21,7 @@ I'm currently prioritising a solid fundation over new features, with the aim of 
 For instructions on how to test the OS (and much more), see `instructions.txt`.
 Before doing that though, please read the license in `LICENSE.txt`, it's short, I promise!
 
-The OS currently has little functionality, but the plan is to keep on expanding it: to see what is programmed to come, check `todo.txt`. To instead see what was added, changed or fixed in the current version or in past one, see `CHANGELOG.md`.
+The OS currently has little functionality, but the plan is to keep on expanding it: to see what is programmed to come, check `todo.txt`. To instead see what was added, changed or fixed in the current version or in past ones, see `CHANGELOG.md`.
 
 ## Description
 
@@ -174,7 +172,7 @@ The following list contains all the project files and folders included in the re
 
 - `todo.txt`: list of likely future updates
 
-This list is also available at the end of the `instructions.txt` file
+This list is also available at the end of the `instructions.txt` file.
 
 ## Credits
 
