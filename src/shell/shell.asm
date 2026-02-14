@@ -43,6 +43,7 @@ bits 16 ; Emit 16-bit code.
 
 
 
+
 ; ================================================================================
 ; ================================================================================
 
@@ -56,7 +57,7 @@ bits 16 ; Emit 16-bit code.
 ; Entry point of the shell, executed after the far jump from the bootloader.
 entry:
 
-	; Save useful data passed by the bootloader for FS operations.
+	; Save useful data passed by the bootloader for filesystem operations.
 	sti
 	pop word [offs_root_dir]
 	pop word [offs_fat]
@@ -184,7 +185,7 @@ arch_id:
 	mov si, err_arch_unsupported
 	cld
 
-; Loop to print one character at a time (PUSHA/POPA are not available).
+; Loop to print one character at a time ('prints' and 'printc' use PUSHA/POPA, which are not available).
 .puts_loop:
 
 	; Load the character and check for NULL.
@@ -219,7 +220,7 @@ arch_id:
 
 ; CPU IDENTIFICATION:
 
-; Acquire information about the CPU: features, topology, vendor and model.
+; Acquire information about the CPU: features, core topology, vendor and model.
 
 
 ; CPUID BASIC:
@@ -229,7 +230,7 @@ cpuid_basic:
 
 	; Check the CPU architecture for CPUID support (80586+).
 	cmp byte [cpu_type], 5
-	jb initialise_pages
+	jb cpu_id_done ; Skip everything if the instruction is not supported.
 
 ; Get the vendor ID and the maximum basic calling parameter.
 .get_vendor_id:
@@ -265,8 +266,11 @@ cpuid_basic:
 	cpuid ; EAX = maximum extended calling parameter;
 		  ; EBX:EDX:ECX = vendor ID (AMD and AMD clones only).
 	cmp eax, 0x80000001
-	jb core_enumeration ; For no extended CPUID support, keep the default.
+	jb .cpuid_basic_done ; For no extended CPUID support, keep the default.
 	mov [cpuid_max_ext_leaf], al
+
+; Channeler to end the basic CPUID section.
+.cpuid_basic_done:
 
 ; END OF CPUID BASIC.
 
@@ -287,11 +291,11 @@ core_enumeration:
 	; Check if bit 28 of the EDX feature bits is set (SMT/HTT support).
 	test byte [cpu_feature_bits_edx + 3], 0x10
 	jnz .check_vendor_id ; If yes, continue with core enumeration.
-	jmp cpuid_extended ; If no, keep the defaults.
+	jmp .core_enumeration_done ; If no, keep the defaults.
 
 	; Check if the bit was set falsely (it could still be, but it's more rare).
 	cmp byte [cpu_additional_info + 2], 1
-	je cpuid_extended ; If yes, keep the defaults and skip.
+	je .core_enumeration_done ; If yes, keep the defaults and skip.
 
 ; Look for the vendor ID in the reference table to determine the preferred algorithm.
 .check_vendor_id:
@@ -378,7 +382,7 @@ core_enumeration:
 	mov [cpu_logical_cores], bx
 
 ; Check the die level (if present), which reports the number of logical cores in the package (likely).
-; It's rare but can be present on some multi-die CPUs. Further domain won't be checked, even though the spec says to.
+; It's rare but can be present on some multi-die CPUs. Further domains won't be checked, even though the spec says to.
 .check_die_level:
 
 	; Try the sub-leaf 2 for the die level.
@@ -389,11 +393,11 @@ core_enumeration:
 
 	; If the domain type is 0 (invalid), then the level is not present.
 	cmp ch, 0
-	je .core_enumeration_done ; If 0, no die level is present.
+	je .compute_physical_cores ; If 0, no die level is present.
 
 	; If valid, save the reported value.
 	mov [cpu_logical_cores], bx
-	jmp .core_enumeration_done
+	jmp .compute_physical_cores
 
 ; END OF INTEL METHOD.
 
@@ -443,8 +447,8 @@ core_enumeration:
 	div cx
 	mov [cpu_threads_per_core], al
 
-	; Proceed directly.
-	jmp cpuid_extended	
+	; Proceed directly, as the number of physical cores has already been acquired.
+	jmp .core_enumeration_done	
 
 ; If CmpLegacy is set, then the value from leaf 0x01 in EBX represents the physical cores.
 .cmp_legacy_set:
@@ -466,8 +470,9 @@ core_enumeration:
 	mov al, [cpu_additional_info + 2]
 	mov [cpu_logical_cores], al
 
-; Executed after getting the number of threads per core and total logical core, this is in common to all procedures.
-.core_enumeration_done:
+; Compute the number of physical cores, after getting the number of threads per core and total logical cores;
+; this is in common to all procedures (except a specific AMD branch).
+.compute_physical_cores:
 
 	; Divide by the number of threads per core to get the physical cores.
 	mov ax, [cpu_logical_cores]
@@ -478,11 +483,13 @@ core_enumeration:
 
 	; Check if the result is 0 (could happen on emulators and VMs).
 	cmp al, 0
-	ja cpuid_extended ; Skip if more than 0.
+	ja .core_enumeration_done ; Skip if more than 0.
 
 	; Increment the physical core count to 1.
 	inc byte [cpu_physical_cores]
-	jmp cpuid_extended
+
+; Channeler to end the core enumeration process.
+.core_enumeration_done:
 
 ; END OF CORE ENUMERATION.
 
@@ -531,7 +538,7 @@ cpuid_extended:
 	cmp al, 0x4
 	jbe .get_brand_string
 
-; End of the CPU information collection. 
+; Channeler to end the CPUID extended section. 
 .cpuid_extended_done:
 
 	; Clear the 32-bit registers, not to create issues.
@@ -541,6 +548,10 @@ cpuid_extended:
 	xor edx, edx
 
 ; END OF CPUID EXTENDED.
+
+
+; Channeler to end the CPU information collection.
+cpu_id_done:
 
 ; END OF CPU IDENTIFICATION.
 
@@ -562,9 +573,10 @@ initialise_pages:
 	mov si, msg_hello
 	call prints
 
-	; Save the cursor postion at page 0 and set up a counter (CX).
+	; Save the cursor postion at page 0 and set up a counter (CX) and the number of digits (DX).
 	push word [cursor_row]
 	mov cx, 1
+	xor dx, dx
 
 ; Print the empty page message in all the the blank pages (1 to 7).
 .fill_blank_pages:
@@ -577,7 +589,7 @@ initialise_pages:
 	mov word [cursor_row], 0x0000
 	mov si, msg_page_empty_1
 	call prints
-	call printd16
+	call printd16 ; Page number already in AX.
 	mov si, msg_page_empty_2
 	call prints
 
@@ -653,8 +665,8 @@ low_memory_detect:
 	cmp ax, 64 + SHELL_TOTAL_KIB
 	je .no_free_memory
 
-	; If yes, proceed to the main shell loop (systems without EBDAs didn't have extended memory yet).
-	jmp shell_main_loop
+	; If yes, skip the extended memory detection (systems without EBDAs didn't have extended memory yet).
+	jmp memory_detect_done
 
 ; If they are the same, that means the EBDA is present and a standard memory configuration can be assumed.
 .ebda_present:
@@ -664,28 +676,28 @@ low_memory_detect:
 	cmp ax, 64 + SHELL_TOTAL_KIB
 	je .no_free_memory
 
-	; If there are less than 128KiB, assume 128KiB of total memory, then proceed with the main shell loop.
+	; If there are less than 128KiB, assume 128KiB of total memory, then skip over extended memory detection.
 	cmp ax, 128
-	jb shell_main_loop
+	jb memory_detect_done
 
 	; Same for 256KiB.
 	mov word [mem_total_kib], 256
 	cmp ax, 256
-	jb shell_main_loop
+	jb memory_detect_done
 
 	; Same for 384KiB.
 	mov word [mem_total_kib], 384
 	cmp ax, 384
-	jb shell_main_loop
+	jb memory_detect_done
 
 	; Same for 512KiB.
 	mov word [mem_total_kib], 512
 	cmp ax, 512
-	jb shell_main_loop
+	jb memory_detect_done
 
 	; If 512KiB or more are reported, proceed with the extended memory detection.
 	mov word [mem_total_kib], 640
-	jmp ext_memory_detect
+	jmp .low_memory_detect_done
 
 
 ; ====================
@@ -783,24 +795,28 @@ low_memory_detect:
 	; Print the continue with limited functionalities message.
 	mov si, msg_continue_limited_function
 	call prints
-	jmp shell_main_loop
+	jmp memory_detect_done
 
 ; END OF ERROR HANDLERS.
+
+
+; Channeler to end low memory detection.
+.low_memory_detect_done:
 
 ; END LOW OF MEMORY DETECTION.
 
 
 
 
-; ========================================
-; ========================================
+; ====================
+; ====================
 
 
 
 
 ; EXTENDED MEMORY DETECTION:
 
-; Detect how much contiguous memory is install on the system (no full map).
+; Detect how much contiguous memory is installed on the system (no full map).
 ext_memory_detect:
 
 	; The INT 0x15, 0xE801 subroutine is only available on 80386+ systems.
@@ -828,14 +844,15 @@ ext_memory_detect:
 	shl ebx, 6 ; Multiply the number by 64, as expressed in 64KiB blocks.
 	add [mem_total_kib], ebx ; Add it to the total.
 
+	; Jump over the CX/DX section.
 	jmp .E801h_total_mib
 
 ; If AX was zero, try using CX and DX.
 .E801h_use_cx_dx:
 
-	; If even CX is zero, proceed to the shell main loop.
+	; If even CX is zero, then there is no extended memory.
 	cmp cx, 0
-	je shell_main_loop
+	je memory_detect_done
 
 	; Replicate the procedure used on AX and BX.
 	mov word [mem_total_kib], 1024
@@ -846,8 +863,6 @@ ext_memory_detect:
 	shl edx, 6
 	add [mem_total_kib], edx
 
-	jmp .E801h_total_mib
-
 ; Store the result also in MiB
 .E801h_total_mib:
 
@@ -856,7 +871,7 @@ ext_memory_detect:
 	shr eax, 10
 	mov [mem_total_mib], eax
 
-	jmp .memory_detect_done
+	jmp .ext_memory_detect_done
 
 ; If the processor is an 80286 or the other subroutine failed, try with 0x88.
 .88h_subfunction:
@@ -864,10 +879,11 @@ ext_memory_detect:
 	; Get the result in AX (for 1MiB and over).
 	mov ax, 0x88
 	int 0x15
-	; Continue to the shell main loop if even 0x88 doesn't work or reports 0.
-	jc shell_main_loop
+
+	; If even 0x88 doesn't work or reports 0, end memory detection.
+	jc memory_detect_done
 	cmp ax, 0
-	je shell_main_loop
+	je memory_detect_done
 
 	; Save the value in KiB.
 	mov word [mem_total_kib], 1024
@@ -878,10 +894,10 @@ ext_memory_detect:
 	mov word [mem_total_mib], 1
 	add [mem_total_mib], ax
 
-	jmp shell_main_loop
+	jmp memory_detect_done
 
-; End the memory detection process.
-.memory_detect_done:
+; Channeler to end extended memory detection.
+.ext_memory_detect_done:
 
 	; Clea the 32-bit registers, not to create issues.
 	xor eax, eax
@@ -891,7 +907,109 @@ ext_memory_detect:
 
 ; END OF EXTENDED MEMORY DETECTION.
 
+
+; Channeler to end the memory detection process.
+memory_detect_done:
+
 ; END OF MEMORY DETECTION.
+
+
+
+
+; ========================================
+; ========================================
+
+
+
+
+; CMOS SANITY CHECK:
+
+; Poll time and date data from the CMOS RTC registers, to confirm their sanity.
+; This will also keep record of the system startup time.
+
+cmos_sanity_check:
+
+	; Check bit 7 of status register D (VRT) to confirm CMOS contents validity.
+	mov al, 0x0D
+	call cmos_read
+	test al, 0x80
+	jz .battery_dead ; If the bit is clear, power was lost and the CMOS contents must considered invalid.
+
+	; Save the contents of status register B before proceeding.
+	mov al, 0x0B
+	call cmos_read
+	mov [cmos_status_b], al
+
+; Check if the RTC time/date registers are in range.
+.time_registers_range:
+
+	; Perform the first read of the RTC time/date registers.
+	mov di, rtc_seconds
+	call rtc_read
+
+	; Check if every time and date field is in range; if not, consider the RTC time/date registers to be invalid.
+	cmp byte [di], 59 ; Seconds (0-59).
+	ja .out_of_range
+	cmp byte [di + 1], 59 ; Minutes (0-59).
+	ja .out_of_range
+	cmp byte [di + 2], 23 ; Hours (0-23): the 12h format is never exposed by 'rtc_read'.
+						  ; This doesn't handle the case where the hours were 0 in 12h mode (which goes from 1 to 12).
+	ja .out_of_range
+	cmp byte [di + 3], 1 ; Day (1-31).
+	jb .out_of_range
+	cmp byte [di + 3], 31 ; Month-specific upper bounds are not checked, therefore 31/02 will be considered "sane".
+	ja .out_of_range
+	cmp byte [di + 4], 1 ; Month (1-12).
+	jb .out_of_range
+	cmp byte [di + 4], 12
+	ja .out_of_range
+	cmp byte [di + 5], 99 ; Year (0-99).
+	ja .out_of_range
+
+; Transfer the valid time/date values to the boot time structure.
+.set_boot_time:
+
+	; Set up the source (SI), the destination (DI) and the counter (CX).
+	mov si, rtc_seconds
+	mov di, boot_seconds
+	mov cx, 6
+
+	; Transfer the structure (atomicity is not needed, since during initialisation nothing else is running).
+	cld ; Clear the direction flag, for safety.
+	rep movsb
+
+	; End the process and go to the next section.
+	jmp .cmos_sanity_check_done
+
+; Handle the case in which the CMOS has lost power.
+.battery_dead:
+
+	; Set bit 3 of the system status.
+	or byte [system_status], 0x08
+
+	; Then proceed to the next section (both time/date structures are still initialised with 0xFF).
+	jmp .cmos_sanity_check_done
+
+; Hanlde the case in which one (or more) of the time/date registers was out of range.
+.out_of_range:
+
+	; Set bit 4 of the system status
+	or byte [system_status], 0x16
+
+	; Set up the data (AL) and the counter (CX).
+	mov al, 0xFF
+	mov cx, 6
+
+	; Fill the last-polling time/date structure with 0xFF.
+	rep movsb
+
+	; Proceed to the next section.
+	jmp .cmos_sanity_check_done
+
+; Channeler to end the CMOS/RTC sanity check.
+.cmos_sanity_check_done:
+
+; END OF CMOS SANITY CHECK.
 
 ; END OF ENTRY CODE.
 
@@ -910,7 +1028,7 @@ ext_memory_detect:
 
 ; MAIN CODE:
 
-; Main loop of the shell, repeats after every command.
+; Main loop of the shell, repeats after every command; it is executed after the entry code.
 shell_main_loop:
 
 	; Print the prompt for a command.
@@ -936,7 +1054,7 @@ shell_main_loop:
 	cmp ah, 0x47
 	je .home_pressed
 
-	; Block any input from a non-active page.
+	; Block any other input from a non-active page.
 	mov bl, [displayed_page]
 	cmp bl, [active_page]
 	jne .read_command
@@ -1005,11 +1123,9 @@ shell_main_loop:
 	cmp byte [cmd_input_length], 0
 	je shell_main_loop
 
-	; Go to a new line.
+	; Go to a new line twice.
 	mov si, msg_newline
 	call prints
-
-	; If the command wasn't empty, print another newline.
 	call prints
 
 	; Store 0x00 in the buffer, signalling the end of the input, and increment the input length.
@@ -1017,9 +1133,7 @@ shell_main_loop:
 	stosb
 	inc byte [cmd_input_length]
 
-	; Set up the counter (BX) and the offset (DX).
-	mov bx, 0
-	mov dx, 0
+	; Jump to the command validation code.
 	jmp .parse_table
 
 
@@ -1133,7 +1247,7 @@ shell_main_loop:
 ; Execute a valid command.
 .valid_command:
 
-	; Call to the address after the command name (12 bytes, 0x00 include), then go back to the main loop.
+	; Call to the address after the command name (12 bytes, 0x00 included), then go back to the main loop.
 	add di, 12
 	mov bx, di
 	call bx
@@ -1168,7 +1282,7 @@ shell_main_loop:
 ; 'prints': print a string in TTY mode.
 
 ; Inputs:
-; - DS:SI = address to the NULL-terminated string to print.
+; - DS:SI = address of the NULL-terminated string to print.
 
 ; Outputs nothing, all registers are preserved.
 
@@ -1183,7 +1297,8 @@ shell_main_loop:
 ; 'printd16': print a 16-bit number into its decimal ASCII representation.
 
 ; Inputs:
-; - AX = number to print.
+; - AX = number to print;
+; - DL = exact number of digits to print (0 if standard).
 
 ; Outputs nothing, all registers are preserved.
 
@@ -1198,7 +1313,8 @@ shell_main_loop:
 ; 'printd32': print a 32-bit number into its decimal ASCII representation (80386+ only).
 
 ; Inputs:
-; - EAX = number to print.
+; - EAX = number to print;
+; - DL = exact number of digits to print (0 if standard).
 
 ; Outputs nothing, all registers are preserved.
 
@@ -1246,9 +1362,11 @@ shell_main_loop:
 ; Inputs:
 ; - SI = address of the first string;
 ; - DI = address of the second string;
-; - BX = number of characters to compare (0xFFFF if all).
+; - BX = number of characters to compare (0x0000 for a 64KiB segment).
 
-; Outputs nothing, all registers are preserved.
+; Outputs:
+; - ZF = 1 if the strings are equal, 0 if not;
+; - All registers are preserved.
 
 %include "src/functions/strcmp.asm" ; 'strcmp' function.
 
@@ -1261,12 +1379,61 @@ shell_main_loop:
 ; 'change_page': change the currently displayed page.
 
 ; Inputs:
-; - AL = new page number.
+; - AL = new page number (0-7).
 
 ; Outputs nothing, all registers are preserved.
 
 %include "src/functions/change_page.asm" ; 'change_page' function.
 
+
+; ====================
+
+
+; CMOS_READ:
+
+; 'cmos_read': read the contents of a CMOS register.
+
+; Inputs:
+; - AL = register address.
+
+; Outputs:
+; - AL = read register contents.
+
+%include "src/functions/cmos_read.asm" ; 'cmos_read' function.
+
+
+; ====================
+
+
+; RTC_READ:
+
+; 'rtc_read': read the contents of RTC time and date registers.
+			; Store the results in a 6-byte structure, which must not cross a segment boundary.
+
+; Inputs:
+; - ES:DI = address of structure where to store read data (with DI <= 65530).
+
+; Outputs:
+; - ES:[DI] = read register data;
+; - All registers are preserved.
+
+%include "src/functions/rtc_read.asm" ; 'rtc_read' function.
+
+
+; ====================
+
+
+; BCD_TO_BIN:
+
+; 'bcd_to_bin': convert a BCD (byte coded decimal) 8-bit number back to binary.
+
+; Inputs:
+; - AL = BCD number.
+
+; Outputs:
+; - AL = number after binary conversion.
+
+%include "src/functions/bcd_to_bin.asm" ; 'bcd_to_bin' function.
 
 ; END OF KERNEL'S FUNCTIONS.
 
@@ -1291,7 +1458,7 @@ shell_main_loop:
 
 ; DISK DATA:
 
-; Values passed by the bootloader for disk operations, so they don't have to be recalculated:
+; Values passed by the bootloader for disk operations, so they don't have to be recalculated.
 
 ; Addresses of useful filesystem data structures already loaded in memory.
 offs_fat: dw 0x0000 ; Offset of the FAT (segment is 0x0000).
@@ -1318,9 +1485,9 @@ cursor_row: db 00 ; Cursor row (in normal text modes from 0 to 24).
 cursor_column: db 00 ; Cursor column (in normal text modes from 0 to 79).
 
 ; Page trackers for managing printing and scrollback.
-active_page: db 0 ; The active page, where the prompt is situated; printing and entering are only allowed here, PGDN and HOME have no effect.
-last_page: db 1 ; The last page in scrollback; PGUP has no effect.
-displayed_page: db 0 ; The currently displayed page; PGUP, PGDN and HOME can work or not based on the page number.
+active_page: db 0 ; The active page, where the prompt is situated; printing and entering are only allowed here, PgDn and Home have no effect.
+last_page: db 1 ; The last page in scrollback; PgUp has no effect.
+displayed_page: db 0 ; The currently displayed page; PgUp, PgDn and Home can work or not based on the page number.
 
 ; END OF DISPLAY DATA.
 
@@ -1417,22 +1584,59 @@ ebda_seg: dw 0 ; Multiply by 16 for the address.
 
 
 
+; CMOS/RTC DATA:
+
+; Data contained in CMOS/RTC registers, acquired via I/O operations on ports 0x70 and 0x71.
+
+; Time and date information from the last polling (with valid ranges in parentheses), 0xFF if unavailable.
+rtc_seconds: db 0xFF ; (0-59)
+rtc_minutes: db 0xFF ; (0-59)
+rtc_hours: db 0xFF ; (0-23 or 1-12)
+rtc_day: db 0xFF ; (1-31)
+rtc_month: db 0xFF ; (1-12)
+rtc_year: db 0xFF ; (0-99)
+
+; Date and time of system startup, 0xFF if unavailable.
+boot_seconds: db 0xFF
+boot_minutes: db 0xFF
+boot_hours: db 0xFF
+boot_day: db 0xFF
+boot_month: db 0xFF
+boot_year: db 0xFF
+
+; Status registers.
+cmos_status_b: db 0 ; - bit 1: 24-hour mode enabled (else 12-hour mode, with bit 7 indicating PM);
+					; - bit 2: binary format enabled (else BCD).
+
+; END OF CMOS/RTC DATA.
+
+
+
+
+; ========================================
+; ========================================
+
+
+
+
 ; Status and control values, to allow or block certain features or operations; everything defaults to no restrictions.
 
 ; System status.
-system_status: db 00 ; Contains a value describing the current system's status and what functionalities should be restricted (to be revised):
-					 ; - 00: normal status, everything is allowed;
-					 ; - bit 0: memory detection failed, files can't be opened and other programs can't be launched (currently has no effect);
-					 ; - bit 1: EBDA not present;
-					 ; - bit 2: couldn't properly detect SMT/HTT support, so the physical cores count might not be correct.
+system_status: db 0x00 ; Contains a value describing the current system's status and what functionalities should be restricted (to be revised):
+					   ; - 0x00: normal status, everything is allowed;
+					   ; - bit 0: memory detection failed, files can't be opened and other programs can't be launched (currently has no effect);
+					   ; - bit 1: EBDA not present;
+					   ; - bit 2: couldn't properly detect SMT/HTT support, so the physical cores count might not be correct;
+					   ; - bit 3: CMOS has lost power (VRT bit was clear), register contents are to be considered unreliable;
+					   ; - bit 4: RTC time/date registers were out of range, so time data is not available (time structures are also set to 0xFF).
 
 ; Printing status.
-print_control: db 00 ; Contains a value describing how printing should be restricted (expandable for more values and purposes):
-					 ; - 00: normal printing, everything is allowed;
-					 ; - 02: auto newline control, one line feed (LF) gets blocked, then it is disabled;
-					 ;		 done to prevent an extra newline after an automatic one happened.
-					 ; - 04: new page control, all line feeds (LF) get blocked, only disabled by printing a character except carriage return (CR);
-					 ;		 done to avoid blank lines at the beginning of pages (to save space) after a page change happened. 
+print_control: db 0x00 ; Contains a value describing how printing should be restricted (expandable for more values and purposes):
+					   ; - 00: normal printing, everything is allowed;
+					   ; - 02: auto newline control, one line feed (LF) gets blocked, then it is disabled;
+					   ;	   done to prevent an extra newline after an automatic one happened.
+					   ; - 04: new page control, all line feeds (LF) get blocked, only disabled by printing a character except carriage return (CR);
+					   ;	   done to avoid blank lines at the beginning of pages (to save space) after a page change happened. 
 
 ; END OF IMPORTANT VALUES.
 
@@ -1462,6 +1666,7 @@ print_control: db 00 ; Contains a value describing how printing should be restri
 
 ; Define strings for normal messages, logs and prompts.
 
+
 ; Contains 0x0D and 0x0A, used for going to a new line more efficiently.
 msg_newline: db ENDL, 0
 
@@ -1469,7 +1674,7 @@ msg_newline: db ENDL, 0
 msg_hello: db "Welcome to LARI-OS! This is a command-line shell!", ENDL, \
 			  "We are currently running in 16-bit real-mode.", ENDL, \
 			  "The video mode is 80*25 4-bit colour text, but the output is monochrome.", ENDL, \
-			  "Type 'help' for general help; type 'sysinfo' for more information.", ENDL, \
+			  "Type 'help' for general help; type 'sysinfo' for system information.", ENDL, \
 			  "Use the 'PgUp' and 'PgDn' buttons to scroll through the 8 pages.", ENDL, 0
 
 ; Blank page messages, printed in any empty page at the beginning; after the first one, the number of the page is printed.
@@ -1517,9 +1722,9 @@ msg_help_list_2: db " available commands:", 0
 msg_help_list_3: db ENDL, "- ", 0
 
 ; Contains more detailed instructions.
-msg_help_2: db ENDL, ENDL, "When typing commands, use 'Backspace' to delete the last character;", ENDL, \
+msg_help_2: db ENDL, ENDL, "When typing commands, use 'Backspace' to delete the last character.", ENDL, \
 			   "To navigate between pages, use 'PgUp' to scroll up and 'PgDn' to scroll down;", ENDL, \
-			   "Use 'Home' to return to the active page, where the last output was printed.", ENDL, 0
+			   "use 'Home' to return to the active page, where the last output was printed.", ENDL, 0
 
 ; END OF HELP COMMAND STRINGS.
 
@@ -1537,21 +1742,42 @@ msg_help_2: db ENDL, ENDL, "When typing commands, use 'Backspace' to delete the 
 ; Strings and messages printed by the 'sysinfo' command.
 
 ; CPU information list messages, printed in sequence to list various information about the processor.
-msg_cpu_info: db "CPU information", ENDL, 0
+msg_cpu_info: db "CPU information:", ENDL, 0
 msg_vendor_id: db "Vendor: ", 0
 msg_brand_string: db ENDL, "Model: ", 0
 msg_physical_cores: db ENDL, "Physical cores: ", 0
-msg_physical_cores_uncertain: db " (couldn't confirm SMT/HTT support, might be incorrect)", 0
+war_physical_cores_uncertain: db " (couldn't confirm SMT/HTT support, might be incorrect)", 0
 msg_logical_cores: db ENDL, "Logical cores: ", 0
 
 ; Memory information list messages, printed in sequence to list various information about memory utilization and availability.
-msg_memory_info: db ENDL, ENDL, "Memory (RAM) information", ENDL, 0
+msg_memory_info: db ENDL, ENDL, "Memory (RAM) information:", ENDL, 0
 msg_total_memory_kib: db "Total available memory (KiB): ", 0
 msg_total_memory_mib: db                        "(MiB): ", 0
 msg_usable_memory: db ENDL, "Total currently usable memory (KiB): ", 0
 msg_free_memory: db ENDL, "Free memory (KiB): ", 0
 
+msg_boot_time: db ENDL, ENDL, "Boot time: ", 0
+war_boot_time_unavailable: db "couldn't be acquired, see 'time' for more information.", ENDL, 0
+
 ; END OF SYSINFO COMMAND STRINGS.
+
+
+
+
+; ========================================
+; ========================================
+
+
+
+
+; TIME COMMAND STRINGS:
+
+; Unavailable time warning messages, printed by the 'time' command when time/date data was found to be invalid.
+war_time_unavailable: db "Time and date couldn't be properly read: ", 0
+war_cmos_lost_power: db "the CMOS has lost power!", ENDL, 0
+war_rtc_out_of_range: db "the RTC registers were out of range!", ENDL, 0
+
+; END OF TIME COMMAND STRING.
 
 
 
@@ -1747,6 +1973,14 @@ cmd_sysinfo:
 	call exe_sysinfo
 	ret
 
+; 'time' command, display current time and date.
+cmd_time:
+
+	db "time", 0
+	times 12-($-cmd_time) db 0
+	call exe_time
+	ret
+
 ; 'poweroff' command, display a poweroff message and halt (expandable for unsaved data checking and freeing memory).
 cmd_poweroff:
 
@@ -1805,6 +2039,7 @@ cmd_input_length: db 0
 ; They return to the table's entry's return, which gives back control to the main loop.
 
 
+
 ; HELLO COMMAND:
 
 ; Execute the 'hello' command: print the welcome message.
@@ -1839,6 +2074,7 @@ exe_help:
 	mov si, msg_help_list_1
 	call prints
 	mov ax, [cmd_entries_count]
+	xor dx, dx
 	call printd16
 	mov si, msg_help_list_2
 	call prints
@@ -1914,6 +2150,7 @@ exe_sysinfo:
 	mov si, msg_physical_cores
 	call prints
 	xor ax, ax
+	xor dx, dx
 	mov al, [cpu_physical_cores]
 	call printd16
 
@@ -1922,7 +2159,7 @@ exe_sysinfo:
 	jz .logical_cores
 
 	; If it couldn't be confirmed, print a warning message.
-	mov si, msg_physical_cores_uncertain
+	mov si, war_physical_cores_uncertain
 	call prints
 
 ; Print the number of logical cores.
@@ -1931,6 +2168,7 @@ exe_sysinfo:
 	mov si, msg_logical_cores
 	call prints
 	mov ax, [cpu_logical_cores]
+	xor dx, dx
 	call printd16
 
 ; Display information about installed and available memory.
@@ -1946,7 +2184,8 @@ exe_sysinfo:
 	mov si, msg_total_memory_kib
 	call prints
 
-	; Check if 'printd32' is usable (80386+).
+	; Check if 'printd32' is usable (80386+) and set the number of digits to standard.
+	xor dx, dx
 	cmp byte [cpu_type], 2
 	je .use_printd16_kib
 
@@ -2004,7 +2243,27 @@ exe_sysinfo:
 	call prints
 	mov ax, [mem_free_kib]
 	call printd16
-	mov si, msg_newline
+
+; Print the time and date the system booted.
+.boot_time:
+
+	; Print the boot time message.
+	mov si, msg_boot_time
+	call prints
+
+	; Check if time/date information is available.
+	cmp byte [boot_seconds], 0xFF
+	je .time_unavailable
+
+	; If it is, print it through the time command, which also prints a newline.
+	mov si, boot_hours ; Set the source for the 'time' command, to print the boot time.
+	call exe_time.sysinfo_merge
+	jmp .done
+
+; If not, print a synthetic error message.
+.time_unavailable:
+
+	mov si, war_boot_time_unavailable
 	call prints
 
 ; Return.
@@ -2013,6 +2272,121 @@ exe_sysinfo:
 	ret
 
 ; END OF SYSINFO COMMAND.
+
+
+
+
+; ========================================
+; ========================================
+
+
+
+
+; TIME COMMAND:
+
+; Execute the 'time' command: display current time and date.
+exe_time:
+
+	; Check if time/date readings are valid (0xFF if not).
+	cmp byte [rtc_seconds], 0xFF
+	je .unavailable
+
+	; If yes, read the CMOS RTC registers to update the stored values.
+	mov di, rtc_seconds
+	call rtc_read
+
+	; Then set up the source (SI) to print the current time.
+	mov si, rtc_hours
+
+; Here the 'sysinfo' command merges to print the boot time.
+.sysinfo_merge:
+
+	; Set up the counter (CL) and the number of digits (DL), the source (SI) must be set previously.
+	mov cl, 3
+	mov dl, 2
+	xor ax, ax
+
+; Print the time in the "HH:MM:SS" format.
+.print_time:
+
+	; Load the number in AL and print it.
+	std ; The DF is set, so SI decreases (in order to print from hours to seconds).
+	lodsb
+	call printd16
+
+	; If all three number were printed, break from the loop.
+	dec cl
+	jz .space
+
+	; Else print a separating colon and loop again.
+	mov al, ":"
+	call printc
+	jmp .print_time
+
+; Separate time and date.
+.space:
+
+	; Print a " - " in between.
+	mov al, " "
+	call printc
+	mov al, "-"
+	call printc
+	mov al, " "
+	call printc
+
+	; Set up the source (SI), the counter (CL) and the number of digits (DL).
+	add si, 4 ; Go from the byte before the seconds to the day.
+	mov cl, 3
+	mov dl, 2
+	xor ax, ax
+
+; Print the date in the "DD/MM/YY" format.
+.print_date:
+
+	; Load the number in AL and print it.
+	cld ; The DF is set, so SI increases (in order to print from day to year).
+	lodsb
+	call printd16
+
+	; If all three numbers were printed, break from the loop.
+	dec cl
+	jz .done
+
+	; Else print a separating forward slash and loop again.
+	mov al, "/"
+	call printc
+	jmp .print_date
+
+; If time registers were invalid, print a warning message, then return.
+.unavailable:
+
+	mov si, war_time_unavailable
+	call prints
+
+	; Check whether it was due to power loss (0x08) or registers being out of range (0x10).
+	test byte [system_status], 0x08
+	jz .lost_power
+
+	; In the second case, print the respective warning message.
+	mov si, war_rtc_out_of_range
+	call prints
+	ret
+
+; In the first case, print a warning message informing that the CMOS has had a power loss.
+.lost_power:
+
+	mov si, war_cmos_lost_power
+	call prints
+	ret
+
+; Go to a new line and return.
+.done:
+
+	mov si, msg_newline
+	call prints
+	ret
+
+; END OF TIME COMMAND.
 
 
 

@@ -1,4 +1,4 @@
-# Changelog:
+\# Changelog:
 
 This file will keep track of all publicly released versions of LARI OS, listing all their additions, changes and fixes from the previous one. Only the stable versions found on the `master` branch will appear in the following list, in reverse chronological order.
 
@@ -38,7 +38,7 @@ Memory detection reports:
 - total usable memory (up to the EBDA, the presence of which is checked to improve accuracy);
 - free memory (currently reports the same value as usable memory).
 
-New kerel functions have been added: `printd32`, `printr` and `strcmp`, `printd` was renamed to `printd16`.
+New kernel functions have been added: `printd32`, `printr` and `strcmp`, `printd` was renamed to `printd16`.
 They, alongside the pre-existing ones, have been separated from `shell.asm` and are attached to it as includes.
 
 New scripts have been added, to simplify the process of testing the OS: `burn-dvd.sh`, `blank-dvd.sh`, `burn-usb.sh`, `restore-usb.sh`, `gen-iso.sh` and `reset-image.sh`.

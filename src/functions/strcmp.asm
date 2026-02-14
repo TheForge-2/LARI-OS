@@ -13,10 +13,10 @@
 ; Inputs:
 ; - SI = address of the first string;
 ; - DI = address of the second string;
-; - BX = number of characters to compare (0 for a 64KiB segment).
+; - BX = number of characters to compare (0x0000 for a 64KiB segment).
 
 ; Outputs:
-; - ZF = 1 if the strings are equal, 0 if not.
+; - ZF = 1 if the strings are equal, 0 if not;
 ; - All registers are preserved.
 
 strcmp:
@@ -52,3 +52,5 @@ strcmp:
 	; Restore the registers and return.
 	popa
 	ret
+
+; END OF STRCMP.

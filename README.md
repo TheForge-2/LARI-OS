@@ -84,7 +84,7 @@ There are 8 pages which store all the terminal output; once one gets filled, the
 After all 8 pages have been filled, the oldest one will be overwritten to make space for newer text.
 Use `PgUp` and `PgDn` to see respectively older and newer output; use `Home` instead to directly return to the newest page.
 
-## Table of contents:
+## Table of contents
 
 The following list contains all the project files and folders included in the repository (folders first, aphabetical order):
 
